@@ -43,12 +43,12 @@ def synthetic_band_gap(comp, rng):
     return float(max(gap, 0.0))
 
 
-def main(out_path=None):
+def main(out_path=None, rows=TARGET_ROWS):
     rng = np.random.default_rng(RANDOM_SEED)
     pyrng = random.Random(RANDOM_SEED)
-    seen, rows = set(), []
+    seen, rows, n_rows = set(), [], rows
     attempts = 0
-    while len(rows) < TARGET_ROWS and attempts < 400000:
+    while len(rows) < n_rows and attempts < 400000:
         attempts += 1
         n_cat = pyrng.choice([1, 1, 2])
         cats = pyrng.sample(CATIONS, n_cat)
@@ -77,4 +77,4 @@ def main(out_path=None):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else None)
+    main(sys.argv[1] if len(sys.argv) > 1 else None, int(sys.argv[2]) if len(sys.argv) > 2 else TARGET_ROWS)

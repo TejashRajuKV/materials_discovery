@@ -6,6 +6,7 @@ Requirements: Node ≥ 18 (developed on 22), Python ≥ 3.10.
 npm install
 pip install -r requirements.txt
 npm run setup          # synthetic data → preprocess → train → export → seed SQLite
+# with your own dataset instead: python3 ml/main.py bootstrap --file path/to/data.csv && npm run db:seed
 npm run dev:backend    # :3000
 npm run dev:frontend   # :5173 (proxies /api)
 npm test               # backend (node:test) + frontend (vitest) + ML (pytest)

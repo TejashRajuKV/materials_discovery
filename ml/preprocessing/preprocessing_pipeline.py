@@ -1,21 +1,22 @@
-"""Raw CSV -> cleaned, validated CSV plus a JSON report."""
+"""Raw dataset file -> cleaned, validated CSV plus a JSON report."""
 import json
 
-from ml.config import DATA_PROCESSED, DATA_RAW, PROCESSED_FILE, RAW_DEFAULT_FILE
-from ml.preprocessing.cleaning import clean, load_raw
+from ml.config import DATA_PROCESSED, PROCESSED_FILE, RAW_DEFAULT_FILE
+from ml.preprocessing.cleaning import clean, load_raw, resolve_path
 from ml.preprocessing.validation import describe_target, validate_dataset
 
 
-def run(raw_file=RAW_DEFAULT_FILE):
-    raw_path = DATA_RAW / raw_file
-    if not raw_path.exists():
+def run(raw_file=RAW_DEFAULT_FILE, formula_col=None, target_col=None):
+    path = resolve_path(raw_file)
+    if not path.exists():
         raise FileNotFoundError(
-            f"{raw_path} not found. Put a CSV with columns formula,band_gap there, "
-            "or run `python ml/main.py generate-data` for the synthetic demo set."
+            f"{path} not found. Pass --file with a CSV/JSON containing a formula and a band gap column "
+            "(in eV), or run `python ml/main.py generate-data` for the synthetic demo set."
         )
-    df, report = clean(load_raw(raw_path))
+    df, report = clean(load_raw(path, formula_col, target_col))
     ok, problems = validate_dataset(df)
-    report.update({"raw_file": raw_file, "valid": ok, "problems": problems, "target": describe_target(df)})
+    report.update({"raw_file": path.name, "valid": ok, "problems": problems, "target": describe_target(df),
+                   "sources": sorted(df["source"].astype(str).unique().tolist())})
     if not ok:
         raise ValueError(f"dataset failed validation: {problems}")
 

@@ -10,11 +10,11 @@ Held-out test set (471 compounds, grouped by chemical system), band gap in eV:
 | mean predictor | 1.270 | 1.582 | −0.009 |
 | ridge | 0.337 | 0.418 | 0.930 |
 | random forest | 0.202 | 0.293 | 0.965 |
-| gradient boosting | 0.203 | 0.286 | 0.967 |
+| histogram gradient boosting | 0.187 | 0.267 | 0.971 |
 
-Selected: random forest (lowest grouped-CV MAE among the three; the gradient-boosting gap is within noise).
+Selected: histogram gradient boosting (lowest grouped-CV MAE, 0.193 vs 0.205 for the random forest). Uncertainty still comes from the random forest's tree spread, so the reported ± is the forest's, not the selected model's.
 
-- Error is lowest for zero-gap compounds (MAE 0.09) and highest for gaps > 4 eV (MAE 0.39).
+- Error is lowest for zero-gap compounds (MAE 0.07) and highest for gaps of 2 eV and above (MAE ≈ 0.30).
 - RF tree-spread vs. |error| correlation on held-out data: 0.59 — informative but uncalibrated.
 - Top features: `range_X`, `dev_X`, `range_ionization_energy` (expected given how labels were made).
 

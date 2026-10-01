@@ -7,7 +7,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.dummy import DummyRegressor
-from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
 from sklearn.linear_model import Ridge
 from sklearn.neighbors import NearestNeighbors
 from sklearn.pipeline import make_pipeline
@@ -33,7 +33,7 @@ def baseline_models(rf_params=None):
         "mean_baseline": DummyRegressor(strategy="mean"),
         "ridge": make_pipeline(StandardScaler(), Ridge(alpha=1.0)),
         "random_forest": RandomForestRegressor(random_state=RANDOM_SEED, n_jobs=-1, **rf_params),
-        "gradient_boosting": GradientBoostingRegressor(random_state=RANDOM_SEED),
+        "gradient_boosting": HistGradientBoostingRegressor(random_state=RANDOM_SEED),
     }
 
 

@@ -74,3 +74,34 @@ def test_generation_excludes_known_and_is_deterministic():
     assert out and not set(out) & set(known)
     assert out == generate_by_substitution(known, limit=50)
     assert "KCl" in generate_by_substitution(known, limit=500)
+
+
+def test_load_raw_detects_columns_and_derives_source(tmp_path):
+    from ml.preprocessing.cleaning import load_raw
+    f = tmp_path / "mp_gaps.csv"
+    pd.DataFrame({"pretty_formula": ["NaCl", "GaAs"], "Eg": [5.0, 0.2], "other": [1, 2]}).to_csv(f, index=False)
+    df = load_raw(f)
+    assert list(df.columns) == ["formula", "band_gap", "source"]
+    assert df.source.unique().tolist() == ["mp_gaps"]
+    assert df.band_gap.tolist() == [5.0, 0.2]
+
+
+def test_load_raw_explicit_columns_and_errors(tmp_path):
+    from ml.preprocessing.cleaning import load_raw
+    f = tmp_path / "d.csv"
+    pd.DataFrame({"name": ["NaCl"], "val": [5.0]}).to_csv(f, index=False)
+    with pytest.raises(ValueError, match="cannot detect the formula"):
+        load_raw(f)
+    assert load_raw(f, "name", "val").band_gap.iloc[0] == 5.0
+    with pytest.raises(ValueError, match="not found"):
+        load_raw(f, "nope", "val")
+
+
+def test_load_raw_from_structure_column_and_json(tmp_path):
+    from pymatgen.core import Lattice, Structure
+    from ml.preprocessing.cleaning import load_raw
+    s = Structure(Lattice.cubic(5.64), ["Na", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
+    f = tmp_path / "mb.json"
+    pd.DataFrame({"structure": [s.as_dict()], "gap pbe": [5.0]}).to_json(f)
+    df = load_raw(f, target_col="gap pbe")
+    assert df.formula.iloc[0] == "NaCl"

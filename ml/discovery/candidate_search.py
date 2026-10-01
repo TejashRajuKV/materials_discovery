@@ -2,7 +2,7 @@
 import pandas as pd
 
 from ml.config import DATA_PROCESSED, PROCESSED_FILE, TARGET, TARGET_UNIT
-from ml.discovery.candidate_filter import filter_candidates
+from ml.discovery.candidate_filter import filter_by_constraints, validate_ranked
 from ml.discovery.candidate_generation import generate_by_substitution
 from ml.explainability.prediction_explanation import explain
 from ml.optimization.constraints import normalize_spec
@@ -37,17 +37,21 @@ def run_discovery(spec, generate=True, include_known=True, max_generated=1500, t
         pool += preds
         n_generated = len(novel)
 
-    kept, stats = filter_candidates(pool, spec)
+    kept, failed_constraints = filter_by_constraints(pool, spec)
+    stats = {"evaluated": len(pool), "failed_constraints": failed_constraints, "satisfied_requirements": len(kept),
+             "failed_validation": 0}
 
     # Known entries have a recorded value (uncertainty 0); ranking them against model
-    # predictions would be unfair, so each origin is ranked on its own.
+    # predictions would be unfair, so each origin is ranked on its own. Ranking is cheap; the
+    # chemistry validation is not, so it only runs down the ranking until top_k candidates pass.
     result = {}
     for origin, key in (("known", "known_matches"), ("generated", "novel_candidates")):
         ranked = rank_candidates([c for c in kept if c["origin"] == origin], spec)
-        top = ranked[:top_k]
+        top, failed = validate_ranked(ranked, spec, top_k)
         for c in top[:explain_top]:
             c["explanation"] = explain(c["formula"], bundle)
         result[key] = top
+        stats["failed_validation"] += failed
         stats[f"{origin}_kept"] = len(ranked)
         stats[f"{origin}_pareto_front_size"] = sum(1 for c in ranked if c["pareto_rank"] == 0)
 

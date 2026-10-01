@@ -1,7 +1,7 @@
 """ML engine CLI. Every command prints one JSON document on stdout (logs go to stderr),
 so the Express backend can drive it as a subprocess.
 
-  python ml/main.py bootstrap                 # synthetic data -> preprocess -> train -> export
+  python ml/main.py bootstrap [--file data.csv]   # (synthetic or your data) -> preprocess -> train -> export
   python ml/main.py generate-data | preprocess | train [--tune] | export
   python ml/main.py predict --formulas NaCl MgO   (or JSON {"formulas": [...]} on stdin with --stdin)
   python ml/main.py discover --stdin              (JSON spec on stdin)
@@ -48,11 +48,18 @@ def _export_materials():
 
 
 def main(argv=None):
+    from ml.config import DATA_RAW, RAW_DEFAULT_FILE
+
     parser = argparse.ArgumentParser(prog="ml")
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("bootstrap")
+    def add_dataset_args(sp):
+        sp.add_argument("--file", help="dataset path, or a file name inside ml/data/raw/ (csv/tsv/json)")
+        sp.add_argument("--formula-col", help="formula column name (auto-detected if omitted)")
+        sp.add_argument("--target-col", help="band gap column name, in eV (auto-detected if omitted)")
+
+    add_dataset_args(sub.add_parser("bootstrap"))
     sub.add_parser("generate-data")
-    sub.add_parser("preprocess")
+    add_dataset_args(sub.add_parser("preprocess"))
     t = sub.add_parser("train")
     t.add_argument("--tune", action="store_true")
     sub.add_parser("export")
@@ -70,7 +77,7 @@ def main(argv=None):
             result = {"path": str(gen())}
         elif args.command == "preprocess":
             from ml.preprocessing.preprocessing_pipeline import run
-            result = run()
+            result = run(args.file or RAW_DEFAULT_FILE, args.formula_col, args.target_col)
         elif args.command == "train":
             from ml.experiments.experiment_runner import run_experiment
             result = run_experiment(tune=args.tune)
@@ -80,10 +87,9 @@ def main(argv=None):
             from ml.experiments.experiment_runner import run_experiment
             from ml.preprocessing.preprocessing_pipeline import run
             from scripts.data.generate_synthetic_dataset import main as gen
-            from ml.config import DATA_RAW, RAW_DEFAULT_FILE
-            if not (DATA_RAW / RAW_DEFAULT_FILE).exists():
+            if not args.file and not (DATA_RAW / RAW_DEFAULT_FILE).exists():
                 gen()
-            run()
+            run(args.file or RAW_DEFAULT_FILE, args.formula_col, args.target_col)
             run_experiment()
             result = _export_materials()
         elif args.command == "predict":

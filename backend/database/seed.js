@@ -21,6 +21,8 @@ export function seed(db, exportPath = config.exportPath) {
   const { results, ...details } = model;
 
   db.transaction(() => {
+    // The export is the source of truth: drop rows from any previously seeded dataset.
+    db.exec('DELETE FROM materials');
     for (const m of materials) upsertMaterial.run(m);
     insertModel.run(`${model.target}-predictor`, model.version, model.target, model.best_model,
       JSON.stringify(results), JSON.stringify(details), model.trained_at);

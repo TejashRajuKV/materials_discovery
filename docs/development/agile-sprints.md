@@ -15,7 +15,7 @@
 | 11–12 | Backend + DB | done |
 | 13–17 | Frontend, explorer, discovery, candidates, charts | done (SVG charts) |
 | 18 | Experiments | registry + page; runner writes JSON |
-| 19 | Testing | pytest 21 · node:test 12 · vitest 5 |
+| 19 | Testing | pytest 24 · node:test 12 · vitest 5 |
 | 20 | Reliability | input validation, timeouts, error handling; rate limiting/auth/backups pending |
 | 21 | Integration | verified end-to-end in a browser |
 | 22–23 | Benchmarking, docs | benchmark table on synthetic data; docs in progress |

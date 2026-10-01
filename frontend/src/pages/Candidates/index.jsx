@@ -28,16 +28,16 @@ export default function Candidates() {
       <p><Link to="/discovery">← New discovery</Link></p>
       <h1>Discovery job #{job.id} <Badge tone="good">completed</Badge></h1>
       <p className="muted">
-        Screened {s.known_considered} known + {s.generated_considered} generated compositions; {s.failed_constraints} failed the requirements,
-        {' '}{s.failed_validation} failed validation. Model {job.model_version}.
+        Screened {s.known_considered} known + {s.generated_considered} generated compositions; {s.satisfied_requirements} satisfy the requirements.
+        {' '}Validation runs down the ranking and rejected {s.failed_validation} on the way to the top results. Model {job.model_version}.
       </p>
 
       <div className="tabs" role="tablist">
         <button role="tab" aria-selected={tab === 'novel_candidates'} onClick={() => setTab('novel_candidates')}>
-          Novel candidates ({s.generated_kept})
+          Novel candidates (top {job.novel_candidates.length} of {s.generated_kept})
         </button>
         <button role="tab" aria-selected={tab === 'known_matches'} onClick={() => setTab('known_matches')}>
-          Known matches ({s.known_kept})
+          Known matches (top {job.known_matches.length} of {s.known_kept})
         </button>
       </div>
       {tab === 'novel_candidates' && (
