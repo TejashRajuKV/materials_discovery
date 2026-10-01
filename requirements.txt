@@ -7,10 +7,8 @@ scipy
 scikit-learn
 joblib
 
-# --- API layer for the ML service ---
-fastapi
-uvicorn
-pydantic
+# --- Materials science (compositions, element data, oxidation states) ---
+pymatgen
 
 # --- Testing ---
 pytest

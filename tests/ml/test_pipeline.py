@@ -1,0 +1,76 @@
+import numpy as np
+import pandas as pd
+
+from ml.discovery.candidate_generation import generate_by_substitution
+from ml.evaluation.metrics import regression_metrics
+from ml.optimization.constraints import InvalidSpecError, evaluate_constraints, normalize_spec
+from ml.optimization.multi_objective import rank_candidates
+from ml.optimization.pareto import non_dominated_ranks
+from ml.preprocessing.cleaning import clean
+from ml.training.cross_validation import grouped_train_test_split
+from ml.validation.chemical_validation import validate_composition
+import pytest
+
+
+def test_clean_drops_bad_rows_and_merges_duplicates():
+    raw = pd.DataFrame({"formula": ["NaCl", "Na1Cl1", "Xx9", "MgO", "CaO"],
+                        "band_gap": [5.0, 5.2, 1.0, "bad", -1.0]})
+    df, report = clean(raw)
+    assert list(df.formula) == ["NaCl"]
+    assert df.band_gap.iloc[0] == pytest.approx(5.1)
+    assert report["dropped_invalid_formula"] == 1
+    assert report["dropped_missing_or_negative_target"] == 2
+    assert report["merged_duplicates"] == 1
+
+
+def test_grouped_split_has_no_group_leakage():
+    groups = np.array(["a", "a", "b", "b", "c", "c", "d", "d", "e", "e"] * 5)
+    tr, te = grouped_train_test_split(len(groups), groups, test_size=0.3)
+    assert not set(groups[tr]) & set(groups[te])
+
+
+def test_metrics_perfect_and_mape_skips_zero():
+    m = regression_metrics([0, 1, 2], [0, 1, 2])
+    assert m["mae"] == 0 and m["r2"] == 1 and m["mape_nonzero"] == 0
+
+
+def test_pareto_ranks():
+    # (1,1) dominates (2,2); (0,3) and (3,0) are incomparable with it
+    ranks = non_dominated_ranks([[1, 1], [2, 2], [0, 3], [3, 0]])
+    assert ranks == [0, 1, 0, 0]
+
+
+def test_constraints_and_ranking():
+    spec = normalize_spec({"band_gap": {"min": 1.0, "max": 3.0, "target": 2.0}, "exclude_elements": ["Pb"]})
+    ok = {"formula": "ZnS", "prediction": 2.1, "uncertainty": 0.1}
+    low = {"formula": "ZnS", "prediction": 0.5, "uncertainty": 0.1}
+    pb = {"formula": "PbS", "prediction": 2.0, "uncertainty": 0.1}
+    assert evaluate_constraints(ok, spec)["satisfied"]
+    assert not evaluate_constraints(low, spec)["satisfied"]
+    assert not evaluate_constraints(pb, spec)["satisfied"]
+    a = {"formula": "A", "prediction": 2.0, "uncertainty": 0.3}
+    b = {"formula": "B", "prediction": 2.4, "uncertainty": 0.1}
+    c = {"formula": "C", "prediction": 2.5, "uncertainty": 0.4}  # dominated by both
+    ranked = rank_candidates([a, b, c], spec)
+    assert {x["formula"]: x["pareto_rank"] for x in ranked} == {"A": 0, "B": 0, "C": 1}
+
+
+@pytest.mark.parametrize("spec", [{}, {"band_gap": {"min": 3, "max": 1}}, {"band_gap": {"min": "x"}}])
+def test_invalid_specs_rejected(spec):
+    with pytest.raises(InvalidSpecError):
+        normalize_spec(spec)
+
+
+def test_chemical_validation_layers():
+    assert validate_composition("NaCl")["status"] == "pass"
+    assert validate_composition("NaCl2")["status"] == "warn"
+    assert validate_composition("Xx9")["status"] == "fail"
+    assert validate_composition("HeO")["status"] == "fail"
+
+
+def test_generation_excludes_known_and_is_deterministic():
+    known = ["NaCl", "KBr", "MgO", "CaS"]
+    out = generate_by_substitution(known, limit=50)
+    assert out and not set(out) & set(known)
+    assert out == generate_by_substitution(known, limit=50)
+    assert "KCl" in generate_by_substitution(known, limit=500)
