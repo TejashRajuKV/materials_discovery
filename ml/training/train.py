@@ -17,6 +17,7 @@ from ml.config import (DATA_PROCESSED, MODELS_SAVED, PROCESSED_FILE, RANDOM_SEED
                        TARGET_UNIT)
 from ml.evaluation.error_analysis import error_analysis
 from ml.evaluation.metrics import regression_metrics
+from ml.prediction.calibration import empirical_coverage, fit_binned_intervals
 from ml.prediction.uncertainty import forest_prediction_std
 from ml.representation.composition_features import feature_names
 from ml.representation.material_representation import chemical_system, featurize_many
@@ -57,9 +58,9 @@ def train(tune=False, processed_file=PROCESSED_FILE, out_dir=None):
     if tune:
         rf_params, _ = tune_random_forest(X_tr, y_tr, g_tr)
 
-    results = {}
+    results, oof_preds = {}, {}
     for name, model in baseline_models(rf_params).items():
-        cv_metrics, _ = grouped_cv_scores(model, X_tr, y_tr, g_tr)
+        cv_metrics, oof_preds[name] = grouped_cv_scores(model, X_tr, y_tr, g_tr)
         model.fit(X_tr, y_tr)
         results[name] = {
             "cv": cv_metrics,
@@ -73,6 +74,10 @@ def train(tune=False, processed_file=PROCESSED_FILE, out_dir=None):
     rf = models["random_forest"].fit(X_tr, y_tr)  # always kept: uncertainty + importances
 
     best_test_pred = best_model.predict(X_te)
+
+    # 90% intervals from the selected model's out-of-fold residuals; checked on the untouched test split.
+    calibration = fit_binned_intervals(oof_preds[best_name], y_tr)
+    calibration["test_coverage"] = empirical_coverage(calibration, best_test_pred, y_te)
     analysis = error_analysis([formulas[i] for i in test_idx], y_te, best_test_pred)
 
     # Uncertainty bands: tree-spread terciles on the held-out set.
@@ -103,6 +108,7 @@ def train(tune=False, processed_file=PROCESSED_FILE, out_dir=None):
         "results": results,
         "error_analysis": analysis,
         "uncertainty": {"std_thresholds": thresholds, "std_vs_abs_error_corr": corr},
+        "calibration": calibration,
         "feature_importance": dict(sorted(
             zip(feature_names(), map(float, rf.feature_importances_)), key=lambda kv: -kv[1])[:15]),
         "trained_at": datetime.now(timezone.utc).isoformat(),

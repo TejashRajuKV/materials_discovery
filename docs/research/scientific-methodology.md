@@ -11,6 +11,9 @@ Pipeline: `raw CSV → clean → featurize → grouped split → baselines → s
 - **Final model** is refit on all data; reported metrics are from the held-out evaluation.
 - **Uncertainty**: spread of per-tree predictions of the random forest (relative, uncalibrated).
   Confidence bands are quantiles of that spread on held-out data.
+- **Prediction intervals**: 90% intervals from the selected model's out-of-fold residuals (grouped CV), binned by
+  predicted value because error depends on the regime (cross-conformal; approximate). Empirical coverage is
+  measured on the untouched test split and shown on the Models page.
 - **Candidate generation**: same-group element substitution on known formulas, deduplicated
   against the known set.
 - **Validation cost control**: requirement filtering and ranking run on the whole pool; the expensive chemistry

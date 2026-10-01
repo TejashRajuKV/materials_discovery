@@ -5,6 +5,7 @@ import joblib
 import numpy as np
 
 from ml.config import MODELS_SAVED, TARGET, TARGET_UNIT
+from ml.prediction.calibration import interval
 from ml.prediction.uncertainty import confidence_label, forest_prediction_std
 from ml.representation.material_representation import InvalidMaterialError, featurize, parse_formula
 from ml.training.train import BUNDLE_NAME
@@ -39,7 +40,9 @@ def predict_many(formulas, bundle=None):
         X = np.vstack(rows)
         values = np.clip(bundle["model"].predict(X), 0, None)
         stds = forest_prediction_std(bundle["forest"], X)
-        for (i, reduced), value, std in zip(index, values, stds):
+        calibration = bundle["metadata"].get("calibration")
+        lows, highs = interval(calibration, values) if calibration else (None, None)
+        for k, ((i, reduced), value, std) in enumerate(zip(index, values, stds)):
             results[i] = {
                 "input": formulas[i],
                 "formula": reduced,
@@ -48,6 +51,8 @@ def predict_many(formulas, bundle=None):
                 "prediction": round(float(value), 4),
                 "uncertainty": round(float(std), 4),
                 "confidence": confidence_label(std, thresholds),
+                **({"interval": [round(float(lows[k]), 4), round(float(highs[k]), 4)],
+                    "interval_level": round(1 - calibration["alpha"], 2)} if calibration else {}),
                 "model": bundle["metadata"]["best_model"],
                 "model_version": bundle["metadata"]["version"],
             }

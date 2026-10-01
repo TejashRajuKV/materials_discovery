@@ -125,3 +125,20 @@ def test_jarvis_records_to_frame_drops_na_and_keeps_stability_columns(tmp_path):
     f = tmp_path / "j.csv"
     df.to_csv(f, index=False)
     assert load_raw(f).band_gap.tolist() == [0.73, 5.1]  # round-trips through the loader
+
+
+def test_binned_intervals_cover_at_the_target_rate_and_adapt_to_regime():
+    from ml.prediction.calibration import empirical_coverage, fit_binned_intervals, halfwidths, interval
+    rng = np.random.default_rng(1)
+    def sample(n):
+        pred = rng.uniform(0, 6, n)
+        noise_scale = np.where(pred < 2, 0.05, 0.5)          # heteroscedastic: easy low gaps, hard high gaps
+        return pred, pred + rng.normal(0, 1, n) * noise_scale
+    p_cal, y_cal = sample(4000)
+    cal = fit_binned_intervals(p_cal, y_cal, alpha=0.1)
+    p_te, y_te = sample(4000)
+    assert 0.86 <= empirical_coverage(cal, p_te, y_te) <= 0.94
+    low, high = halfwidths(cal, [0.5]), halfwidths(cal, [5.0])
+    assert high[0] > 3 * low[0]                                # wider where the model is less accurate
+    lo, hi = interval(cal, [0.01])
+    assert lo[0] == 0 and hi[0] > 0.01                         # never below zero

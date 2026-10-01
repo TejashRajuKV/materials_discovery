@@ -32,6 +32,12 @@ export default function Models() {
           </table>
           <h2>Top features (random forest importance)</h2>
           <ul>{Object.entries(model.details.feature_importance).slice(0, 8).map(([k, v]) => <li key={k}><code>{k}</code> — {fmt(v, 3)}</li>)}</ul>
+          {model.details.calibration && (
+            <p className="muted small">
+              {Math.round((1 - model.details.calibration.alpha) * 100)}% prediction intervals: empirical coverage on the held-out
+              test set = {fmt(model.details.calibration.test_coverage * 100, 1)}%.
+            </p>
+          )}
           <p className="muted small">Uncertainty/|error| correlation on held-out data: {fmt(model.details.uncertainty.std_vs_abs_error_corr)}.</p>
         </>
       )}

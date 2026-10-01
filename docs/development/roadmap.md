@@ -12,4 +12,4 @@
 2. Literature review (`research/literature-review.md`).
 3. Stability data → implement `ml/validation/stability_validation.py`.
 4. Multiple target properties (adds a third objective and `material_properties` table).
-5. Calibrated uncertainty (conformal / ensembles), long-lived ML service, auth, DB backups, CI.
+5. Long-lived ML service, authentication. (Done: calibrated intervals, rate limiting, backups, CI.)

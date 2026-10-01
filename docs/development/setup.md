@@ -12,7 +12,11 @@ npm run dev:frontend   # :5173 (proxies /api)
 npm test               # backend (node:test) + frontend (vitest) + ML (pytest)
 ```
 
-Environment: `PORT`, `DB_PATH`, `PYTHON_BIN` (default `python3`), `ML_TIMEOUT_MS`, `CORS_ORIGIN`.
+Environment (see `.env.example`; the app reads `process.env`): `PORT`, `DB_PATH`, `PYTHON_BIN` (default `python3`),
+`ML_TIMEOUT_MS`, `CORS_ORIGIN`, `MAX_CONCURRENT_JOBS`, `RATE_LIMIT_PREDICT`, `RATE_LIMIT_DISCOVERY`.
+
+Backups: `npm run db:backup` writes a consistent copy to `database/backups/` and keeps the newest 7.
+CI: `.github/workflows/ci.yml` runs setup, all three test suites and the frontend build.
 
 Troubleshooting: if `pip install pymatgen` fails while building `bibtexparser`, install
 `pip install pymatgen-core --no-deps` plus its runtime deps (`monty ruamel.yaml spglib orjson lxml

@@ -131,3 +131,12 @@ describe('misc', () => {
     assert.equal(r.status, 400);
   });
 });
+
+describe('hardening', () => {
+  it('sets security headers and hides the framework', async () => {
+    const r = await fetch(`${base}/api/health`);
+    assert.equal(r.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(r.headers.get('x-frame-options'), 'DENY');
+    assert.equal(r.headers.get('x-powered-by'), null);
+  });
+});

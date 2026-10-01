@@ -1,3 +1,4 @@
+import { config } from '../config/config.js';
 import { logger } from '../utils/logger.js';
 import { HttpError, parseJson } from '../utils/helpers.js';
 
@@ -11,6 +12,10 @@ const candidateView = (row) => ({
 
 /** Create a job and run the ML pipeline in the background. Returns the job immediately. */
 export function startJob(db, ml, spec, options = {}) {
+  const running = db.prepare("SELECT COUNT(*) AS n FROM discovery_jobs WHERE status = 'running'").get().n;
+  if (running >= config.maxConcurrentJobs) {
+    throw new HttpError(429, `${running} discovery jobs already running; try again when one finishes`);
+  }
   const { lastInsertRowid: id } = db.prepare("INSERT INTO discovery_jobs (spec, status) VALUES (?, 'running')")
     .run(JSON.stringify(spec));
 
@@ -70,4 +75,10 @@ export function getCandidate(db, id) {
 export function compareCandidates(db, ids) {
   const rows = ids.map((id) => getCandidate(db, id));
   return rows;
+}
+
+/** Jobs left 'running' by a previous process can never finish; mark them failed on startup. */
+export function failInterruptedJobs(db) {
+  return db.prepare(`UPDATE discovery_jobs SET status = 'failed', error = 'interrupted by server restart',
+    completed_at = datetime('now') WHERE status = 'running'`).run().changes;
 }

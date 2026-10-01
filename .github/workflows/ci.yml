@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          # pymatgen's dependency chain (bibtexparser) fails to build on some pip/setuptools combos;
+          # fall back to installing pymatgen-core without its resolver-pinned extras.
+          pip install -r requirements.txt || {
+            pip install numpy pandas scipy scikit-learn joblib pytest
+            pip install pymatgen-core --no-deps
+            pip install monty ruamel.yaml spglib orjson lxml tabulate requests tqdm networkx sympy plotly uncertainties pybtex
+          }
+
+      - name: Build demo model and database
+        run: npm run setup
+
+      - name: Backend tests
+        run: npm run test:backend
+
+      - name: ML tests
+        run: npm run test:ml
+
+      - name: Frontend tests
+        run: npm run test:frontend
+
+      - name: Frontend build
+        run: npm run build

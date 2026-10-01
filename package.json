@@ -8,6 +8,7 @@
     "setup": "npm run ml:bootstrap && npm run db:seed",
     "ml:bootstrap": "python3 ml/main.py bootstrap",
     "db:seed": "node backend/database/seed.js",
+    "db:backup": "node backend/database/backup.js",
     "dev:frontend": "vite --config frontend/vite.config.js",
     "dev:backend": "node backend/server.js",
     "build": "vite build --config frontend/vite.config.js",

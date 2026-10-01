@@ -14,6 +14,11 @@ both as arguments so tests use an in-memory DB and a fake ML engine.
 | `GET /api/candidates/:id` · `/compare?ids=1,2` | candidate detail · side-by-side |
 | `GET /api/models` · `/models/:id` · `/experiments` | registered models and experiments |
 
+Hardening: security headers; per-IP fixed-window rate limits on `POST /api/predict` (60/min) and
+`POST /api/discovery` (10/min) → `429` + `Retry-After`; at most 2 concurrent discovery jobs (`429`); jobs left
+`running` by a dead process are marked `failed` at startup; online SQLite backups via `npm run db:backup`.
+The rate limiter is in-memory (single process) — use a shared store or reverse proxy if scaled out.
+
 Input is validated in `middleware/validation.js` (formula charset/length/count, spec ranges,
 element symbols) and again by the ML engine. Errors are JSON `{error, details?}`.
 There is no authentication in the MVP.
