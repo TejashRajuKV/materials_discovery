@@ -1,9 +1,12 @@
 """Download a JARVIS-DFT dataset (default: dft_3d) and convert it to the project's raw CSV.
 
-Run this on a machine that can reach figshare (the build sandbox's proxy blocks it):
+Run this on a machine that can reach figshare (the build sandbox's proxy blocks it). The raw JARVIS files
+are far too big for GitHub (dft_3d.json is 242 MB; the limit is 100 MB) and must never be committed — only the
+slim CSV this script writes (~4 MB) is meant to be committed.
 
     pip install jarvis-tools
-    python scripts/data/download_jarvis.py                      # OptB88vdW gap -> ml/data/raw/jarvis_dft_3d.csv
+    python scripts/data/download_jarvis.py                      # downloads, then writes ml/data/raw/jarvis_dft_3d.csv
+    python scripts/data/download_jarvis.py --input path/to/dft_3d.json    # convert a file you already downloaded
     python scripts/data/download_jarvis.py --target mbj_bandgap # more accurate gap, far fewer rows
     python scripts/data/download_jarvis.py --with-structures    # also save atoms for future structure models
     python ml/main.py bootstrap --file ml/data/raw/jarvis_dft_3d.csv && npm run db:seed
@@ -16,6 +19,7 @@ import argparse
 import gzip
 import json
 import sys
+import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -52,18 +56,44 @@ def records_to_frame(records, target="optb88vdw_bandgap", dataset="dft_3d"):
     return pd.DataFrame(rows)
 
 
+def load_records(path):
+    """Read a JARVIS dataset file: a JSON list of dicts, or a .zip / .gz containing one."""
+    path = Path(path)
+    if zipfile.is_zipfile(path):
+        with zipfile.ZipFile(path) as zf:
+            members = [n for n in zf.namelist() if n.lower().endswith(".json")]
+            if not members:
+                raise ValueError(f"no .json file inside {path}")
+            with zf.open(members[0]) as fh:
+                records = json.load(fh)
+    elif path.suffix == ".gz":
+        with gzip.open(path, "rt") as fh:
+            records = json.load(fh)
+    else:
+        with open(path) as fh:
+            records = json.load(fh)
+    if not isinstance(records, list) or not records or not isinstance(records[0], dict):
+        raise ValueError(f"{path} is not a JARVIS record list (expected a JSON list of dicts)")
+    return records
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--dataset", default="dft_3d", help="JARVIS dataset name (default: dft_3d)")
+    parser.add_argument("--input", help="already-downloaded dataset file (.json, .json.zip or .json.gz); skips the download")
     parser.add_argument("--target", default="optb88vdw_bandgap", choices=GAP_FIELDS)
     parser.add_argument("--out", help="output CSV (default: ml/data/raw/jarvis_<dataset>.csv)")
     parser.add_argument("--with-structures", action="store_true", help="also write <out>.atoms.json.gz (jid -> atoms)")
     args = parser.parse_args(argv)
 
-    from jarvis.db.figshare import data  # imported late so --help works without jarvis-tools
+    if args.input:
+        print(f"reading {args.input} ...", file=sys.stderr)
+        records = load_records(args.input)
+    else:
+        from jarvis.db.figshare import data  # imported late so --help / --input work without jarvis-tools
 
-    print(f"downloading {args.dataset} ...", file=sys.stderr)
-    records = data(args.dataset)
+        print(f"downloading {args.dataset} ...", file=sys.stderr)
+        records = data(args.dataset)
     df = records_to_frame(records, args.target, args.dataset)
     out = Path(args.out) if args.out else DATA_RAW / f"jarvis_{args.dataset}.csv"
     out.parent.mkdir(parents=True, exist_ok=True)

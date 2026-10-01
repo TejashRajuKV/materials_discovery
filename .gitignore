@@ -29,6 +29,8 @@ ml/models/saved/*
 !ml/models/saved/.gitkeep
 ml/data/raw/*
 !ml/data/raw/.gitkeep
+# slim CSV written by scripts/data/download_jarvis.py (a few MB) may be committed
+!ml/data/raw/jarvis_*.csv
 ml/data/processed/*
 !ml/data/processed/.gitkeep
 ml/data/external/*
@@ -49,3 +51,10 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Raw JARVIS dumps are 150 MB - 1.8 GB; GitHub rejects files over 100 MB
+**/dft_3d*.json*
+**/cfid_3d*.json*
+**/mp_3d*.json*
+**/oqmd_3d*.json*
+*.json.zip

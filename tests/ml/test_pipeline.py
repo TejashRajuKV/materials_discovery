@@ -142,3 +142,21 @@ def test_binned_intervals_cover_at_the_target_rate_and_adapt_to_regime():
     assert high[0] > 3 * low[0]                                # wider where the model is less accurate
     lo, hi = interval(cal, [0.01])
     assert lo[0] == 0 and hi[0] > 0.01                         # never below zero
+
+
+def test_jarvis_load_records_json_zip_gz_and_bad_input(tmp_path):
+    import gzip, json, zipfile
+    from scripts.data.download_jarvis import load_records, records_to_frame
+    recs = [{"jid": "JVASP-1", "formula": "Si", "optb88vdw_bandgap": 0.7}]
+    plain = tmp_path / "dft_3d.json"; plain.write_text(json.dumps(recs))
+    z = tmp_path / "dft_3d.json.zip"
+    with zipfile.ZipFile(z, "w") as zf: zf.writestr("dft_3d.json", json.dumps(recs))
+    g = tmp_path / "dft_3d.json.gz"
+    with gzip.open(g, "wt") as fh: json.dump(recs, fh)
+    for path in (plain, z, g):
+        assert records_to_frame(load_records(path)).formula.tolist() == ["Si"]
+    bad = tmp_path / "bad.json"; bad.write_text('{"a": 1}')
+    with pytest.raises(ValueError): load_records(bad)
+    empty_zip = tmp_path / "e.zip"
+    with zipfile.ZipFile(empty_zip, "w") as zf: zf.writestr("readme.txt", "x")
+    with pytest.raises(ValueError, match="no .json"): load_records(empty_zip)
