@@ -31,12 +31,26 @@ docs/       Research, architecture, dataset, experiment, and dev docs
 
 ```bash
 npm install
-npm run dev:backend     # API on :3000
-npm run dev:frontend    # UI on :5173
-python ml/main.py       # ML service on :8000
+pip install -r requirements.txt
+npm run setup          # synthetic data -> preprocess -> train -> export -> seed SQLite
+npm run dev:backend    # API on :3000
+npm run dev:frontend   # UI on :5173
+npm test               # backend + frontend + ML tests
 ```
 
-Configuration lives in `.env` (copy of the committed defaults, git-ignored).
+The ML engine is a CLI (`python ml/main.py ...`) that the backend runs as a subprocess; there is no
+separate ML server. See `docs/development/setup.md` for environment variables and troubleshooting.
+
+## What it does
+
+Pick band-gap requirements (range, target, element rules, max uncertainty) → the engine screens known
+materials plus substitution-generated compositions → predicts band gap with uncertainty → validates
+→ ranks the trade-off between hitting the target and model certainty (Pareto front) → explains the
+top candidates.
+
+> **Status: demo data.** No real dataset could be downloaded where this was built, so the model is
+> trained on a *synthetic* band-gap set and the UI says so. Metrics and candidates illustrate the
+> workflow only — see `docs/datasets/dataset-selection.md` for how to swap in real data.
 
 ## Documentation
 
