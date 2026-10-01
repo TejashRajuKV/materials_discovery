@@ -19,6 +19,8 @@ build/
 # Database (keep schema, ignore local data)
 database/*.db
 database/*.db-journal
+database/*.db-shm
+database/*.db-wal
 database/backups/*
 !database/backups/.gitkeep
 
