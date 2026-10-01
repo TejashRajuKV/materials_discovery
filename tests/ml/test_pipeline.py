@@ -105,3 +105,23 @@ def test_load_raw_from_structure_column_and_json(tmp_path):
     pd.DataFrame({"structure": [s.as_dict()], "gap pbe": [5.0]}).to_json(f)
     df = load_raw(f, target_col="gap pbe")
     assert df.formula.iloc[0] == "NaCl"
+
+
+def test_jarvis_records_to_frame_drops_na_and_keeps_stability_columns(tmp_path):
+    from scripts.data.download_jarvis import records_to_frame
+    from ml.preprocessing.cleaning import load_raw
+    records = [
+        {"jid": "JVASP-1", "formula": "Si", "optb88vdw_bandgap": 0.73, "mbj_bandgap": "na", "ehull": 0.0, "formation_energy_peratom": 0.0},
+        {"jid": "JVASP-2", "formula": "NaCl", "optb88vdw_bandgap": "5.1", "mbj_bandgap": 7.0, "ehull": "na"},
+        {"jid": "JVASP-3", "formula": "Fe", "optb88vdw_bandgap": "na"},
+        {"jid": "JVASP-4", "formula": "", "optb88vdw_bandgap": 1.0},
+    ]
+    df = records_to_frame(records)
+    assert df.formula.tolist() == ["Si", "NaCl"] and df.band_gap.tolist() == [0.73, 5.1]
+    assert set(df.source) == {"jarvis_dft_3d"} and "ehull" in df.columns
+    assert records_to_frame(records, "mbj_bandgap").formula.tolist() == ["NaCl"]
+    with pytest.raises(ValueError):
+        records_to_frame(records, "nonsense")
+    f = tmp_path / "j.csv"
+    df.to_csv(f, index=False)
+    assert load_raw(f).band_gap.tolist() == [0.73, 5.1]  # round-trips through the loader

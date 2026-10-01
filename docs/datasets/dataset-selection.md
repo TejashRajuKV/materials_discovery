@@ -8,7 +8,24 @@ band gap from an electronegativity/ionicity heuristic plus noise. **These are no
 values.** It exists so the whole stack runs offline; the UI shows a banner while it is in use.
 Metrics on it measure how well the model recovers the heuristic, *not* real-world accuracy.
 
-## Replacing it with real data (next step)
+## Chosen real dataset: JARVIS-DFT `dft_3d`
+Structures + DFT properties for ~76k 3D materials (about 55–60k have an OptB88vdW gap). Fetch it on a machine
+that can reach figshare (the build sandbox's proxy returns 403 for `ndownloader.figshare.com`):
+
+```bash
+pip install jarvis-tools
+python scripts/data/download_jarvis.py                        # -> ml/data/raw/jarvis_dft_3d.csv
+python ml/main.py bootstrap --file ml/data/raw/jarvis_dft_3d.csv && npm run db:seed
+```
+
+Notes: `--target mbj_bandgap` gives a more accurate gap but far fewer rows; OptB88vdW (GGA) systematically
+underestimates gaps. JARVIS has many polymorphs per formula — the cleaner merges them by median, and the grouped
+split keeps a chemical system on one side of the split. The CSV also carries `jid`, `formation_energy_peratom` and
+`ehull`, which the future stability-validation layer should use. `--with-structures` saves the atoms for later
+structure-based models. Other JARVIS sets (`cfid_3d`, `dft_3d_2021`) use the same schema; `oqmd_3d`/`mp_3d` are for
+later cross-database validation.
+
+## Replacing it with any other data
 Candidates: Matbench `matbench_mp_gap` / `matbench_expt_gap`, Materials Project band gaps
 (API key), JARVIS-DFT, OQMD. Download is blocked in the build sandbox (figshare, Zenodo and the
 Materials Project API were unreachable), so this must be done on a networked machine:
