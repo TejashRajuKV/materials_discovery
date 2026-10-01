@@ -5,19 +5,35 @@
   "description": "AI-driven materials discovery platform: React frontend, Express backend, Python ML engine.",
   "type": "module",
   "scripts": {
+    "setup": "npm run ml:bootstrap && npm run db:seed",
+    "ml:bootstrap": "python3 ml/main.py bootstrap",
+    "db:seed": "node backend/database/seed.js",
     "dev:frontend": "vite --config frontend/vite.config.js",
     "dev:backend": "node backend/server.js",
-    "dev:ml": "python ml/main.py",
     "build": "vite build --config frontend/vite.config.js",
     "start": "node backend/server.js",
     "test": "npm run test:backend && npm run test:frontend && npm run test:ml",
-    "test:backend": "node --test tests/backend",
-    "test:frontend": "vitest run",
-    "test:ml": "python -m pytest tests/ml"
+    "test:backend": "node --test \"tests/backend/**/*.test.js\"",
+    "test:frontend": "vitest run --config frontend/vite.config.js",
+    "test:ml": "python3 -m pytest tests/ml -q"
   },
   "engines": {
     "node": ">=18"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "jsdom": "^29.1.1",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3"
+  }
 }
