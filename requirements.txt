@@ -3,6 +3,12 @@ numpy
 pandas
 scipy
 
+# --- Materials data ---
+# Provides jarvis.db.figshare.data(), which is how every JARVIS dataset in
+# ml/data/raw/ is retrieved. Keep this pinned to the version the dataset
+# provenance metadata was generated with.
+jarvis-tools==2026.6.12
+
 # --- ML ---
 scikit-learn
 joblib

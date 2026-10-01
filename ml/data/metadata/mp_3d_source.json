@@ -1,0 +1,34 @@
+{
+  "source": "JARVIS (NIST) via jarvis-tools figshare",
+  "collection": "mp_3d",
+  "retrieved_at": "2026-10-01T18:20:02.928339+00:00",
+  "number_of_records": 83633,
+  "raw_file": "ml\\data\\raw\\mp_3d.json",
+  "fields": [
+    "atoms",
+    "bulk modulus",
+    "desc",
+    "e_form",
+    "e_hull",
+    "elastic anisotropy",
+    "formula",
+    "gap pbe",
+    "id",
+    "mu_b",
+    "shear modulus"
+  ],
+  "field_populated_counts": {
+    "atoms": 83633,
+    "bulk modulus": 83633,
+    "desc": 83633,
+    "e_form": 83633,
+    "e_hull": 83633,
+    "elastic anisotropy": 83633,
+    "formula": 83633,
+    "gap pbe": 83633,
+    "id": 83633,
+    "mu_b": 83633,
+    "shear modulus": 83633
+  },
+  "processing_version": null
+}
