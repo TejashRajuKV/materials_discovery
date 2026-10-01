@@ -1,0 +1,23 @@
+{
+  "name": "ai-materials-discovery",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-driven materials discovery platform: React frontend, Express backend, Python ML engine.",
+  "type": "module",
+  "scripts": {
+    "dev:frontend": "vite --config frontend/vite.config.js",
+    "dev:backend": "node backend/server.js",
+    "dev:ml": "python ml/main.py",
+    "build": "vite build --config frontend/vite.config.js",
+    "start": "node backend/server.js",
+    "test": "npm run test:backend && npm run test:frontend && npm run test:ml",
+    "test:backend": "node --test tests/backend",
+    "test:frontend": "vitest run",
+    "test:ml": "python -m pytest tests/ml"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

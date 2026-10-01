@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Build output
+dist/
+build/
+.vite/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Database (keep schema, ignore local data)
+database/*.db
+database/*.db-journal
+database/backups/*
+!database/backups/.gitkeep
+
+# ML artifacts
+ml/models/saved/*
+!ml/models/saved/.gitkeep
+ml/data/raw/*
+!ml/data/raw/.gitkeep
+ml/data/processed/*
+!ml/data/processed/.gitkeep
+ml/data/external/*
+!ml/data/external/.gitkeep
+
+# Experiment outputs
+experiments/*/**
+!experiments/*/.gitkeep
+!experiments/results/.gitkeep
+
+# Logs & OS
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp

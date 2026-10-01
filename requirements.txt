@@ -1,0 +1,16 @@
+# --- Core ---
+numpy
+pandas
+scipy
+
+# --- ML ---
+scikit-learn
+joblib
+
+# --- API layer for the ML service ---
+fastapi
+uvicorn
+pydantic
+
+# --- Testing ---
+pytest
