@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { parseElements } from '../../utils/format.js';
 
-const initial = { min: '1.0', max: '3.0', target: '2.0', maxUncertainty: '0.5', include: '', exclude: '', maxElements: '3' };
+const initial = { min: '1.0', max: '3.0', target: '2.0', maxUncertainty: '0.5', maxEhull: '', include: '', exclude: '', maxElements: '3' };
 
 export default function RequirementsForm({ onSubmit, busy }) {
   const [f, setF] = useState(initial);
@@ -15,12 +15,13 @@ export default function RequirementsForm({ onSubmit, busy }) {
       include_elements: parseElements(f.include),
       exclude_elements: parseElements(f.exclude),
       max_elements: f.maxElements,
+      max_ehull: f.maxEhull,
     });
   };
 
-  const num = (label, key, hint) => (
+  const num = (label, key, hint, step = '0.1') => (
     <label>{label}
-      <input type="number" step="0.1" min="0" value={f[key]} onChange={set(key)} />
+      <input type="number" step={step} min="0" value={f[key]} onChange={set(key)} />
       {hint && <small className="muted">{hint}</small>}
     </label>
   );
@@ -39,6 +40,8 @@ export default function RequirementsForm({ onSubmit, busy }) {
         <legend>Constraints</legend>
         <div className="row">
           {num('Max prediction uncertainty (eV)', 'maxUncertainty')}
+          {num('Max energy above hull (eV/atom)', 'maxEhull',
+            'stability; blank = no limit. Generated candidates have no stability data, so they are excluded when set', '0.005')}
           <label>Max number of elements
             <input type="number" min="1" max="6" value={f.maxElements} onChange={set('maxElements')} />
           </label>

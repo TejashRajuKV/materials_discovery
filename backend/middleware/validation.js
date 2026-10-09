@@ -36,8 +36,12 @@ export function validateDiscoveryBody(req, res, next) {
     return next(new HttpError(400, 'band_gap.min must not exceed band_gap.max'));
   }
   const hasElementRule = spec.include_elements?.length || spec.exclude_elements?.length || spec.max_elements;
-  if (!given.length && !hasElementRule) {
-    return next(new HttpError(400, 'specify at least one requirement (band gap range/target or an element rule)'));
+  const hasStabilityRule = spec.max_ehull !== undefined && spec.max_ehull !== null && spec.max_ehull !== '';
+  if (hasStabilityRule && (!Number.isFinite(Number(spec.max_ehull)) || Number(spec.max_ehull) < 0)) {
+    return next(new HttpError(400, 'max_ehull must be a non-negative number (eV/atom)'));
+  }
+  if (!given.length && !hasElementRule && !hasStabilityRule) {
+    return next(new HttpError(400, 'specify at least one requirement (band gap range/target, an element rule, or max_ehull)'));
   }
   next();
 }

@@ -1,21 +1,22 @@
 """End-to-end discovery: known materials + generated candidates -> predict -> filter -> rank."""
 import pandas as pd
 
-from ml.config import DATA_PROCESSED, PROCESSED_FILE, TARGET, TARGET_UNIT
+from ml.config import DATA_PROCESSED, TRAINING_FILE, TARGET, TARGET_UNIT
 from ml.discovery.candidate_filter import filter_candidates
 from ml.discovery.candidate_generation import generate_by_substitution
 from ml.explainability.prediction_explanation import explain
 from ml.optimization.constraints import normalize_spec
 from ml.optimization.multi_objective import rank_candidates
 from ml.prediction.predict import load_bundle, predict_many
+from ml.validation.stability_validation import load_ehull_lookup
 
 
-def _known_as_predictions(df):
+def _known_as_predictions(df, ehull_by_formula):
     """Known materials carry a recorded value (uncertainty 0), not a model prediction."""
     return [
         {"input": r.formula, "formula": r.formula, "property": TARGET, "unit": TARGET_UNIT,
          "prediction": float(getattr(r, TARGET)), "uncertainty": 0.0, "confidence": "recorded",
-         "origin": "known"}
+         "origin": "known", "ehull": ehull_by_formula.get(r.formula)}
         for r in df.itertuples()
     ]
 
@@ -23,11 +24,11 @@ def _known_as_predictions(df):
 def run_discovery(spec, generate=True, include_known=True, max_generated=1500, top_k=25, explain_top=5):
     spec = normalize_spec(spec)
     bundle = load_bundle()
-    known_df = pd.read_csv(DATA_PROCESSED / PROCESSED_FILE)
+    known_df = pd.read_csv(DATA_PROCESSED / TRAINING_FILE)
 
     pool = []
     if include_known:
-        pool += _known_as_predictions(known_df)
+        pool += _known_as_predictions(known_df, load_ehull_lookup())
     n_generated = 0
     if generate:
         novel = generate_by_substitution(known_df["formula"].tolist(), limit=max_generated)

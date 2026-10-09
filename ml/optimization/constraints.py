@@ -5,6 +5,7 @@ spec = {
   "max_uncertainty": 0.5,
   "include_elements": ["O"], "exclude_elements": ["Pb"],
   "max_elements": 3,
+  "max_ehull": 0.05,   # eV/atom above the convex hull; unknown for generated candidates (fails)
 }
 """
 from ml.config import TARGET
@@ -28,14 +29,27 @@ def normalize_spec(spec):
                 raise InvalidSpecError(f"{TARGET}.{key} must be a number") from exc
     if "min" in band and "max" in band and band["min"] > band["max"]:
         raise InvalidSpecError(f"{TARGET}.min must not exceed {TARGET}.max")
-    if not band and not any(k in spec for k in ("include_elements", "exclude_elements", "max_elements")):
+    if not band and not any(k in spec for k in ("include_elements", "exclude_elements", "max_elements", "max_ehull")):
         raise InvalidSpecError("specify at least one requirement (property range/target or element constraint)")
     spec[TARGET] = band
     spec["include_elements"] = [str(e) for e in spec.get("include_elements") or []]
     spec["exclude_elements"] = [str(e) for e in spec.get("exclude_elements") or []]
     spec["max_uncertainty"] = float(spec["max_uncertainty"]) if spec.get("max_uncertainty") not in (None, "") else None
     spec["max_elements"] = int(spec["max_elements"]) if spec.get("max_elements") not in (None, "") else None
+    spec["max_ehull"] = _nonneg_float(spec, "max_ehull")
     return spec
+
+
+def _nonneg_float(spec, key):
+    if spec.get(key) in (None, ""):
+        return None
+    try:
+        value = float(spec[key])
+    except (TypeError, ValueError) as exc:
+        raise InvalidSpecError(f"{key} must be a number") from exc
+    if value < 0:
+        raise InvalidSpecError(f"{key} must be zero or positive")
+    return value
 
 
 def evaluate_constraints(candidate, spec):
@@ -58,6 +72,12 @@ def evaluate_constraints(candidate, spec):
     if spec["max_elements"] is not None:
         checks.append({"name": f"<= {spec['max_elements']} elements", "ok": len(symbols) <= spec["max_elements"],
                        "detail": str(len(symbols))})
+    if spec["max_ehull"] is not None:
+        ehull = candidate.get("ehull")
+        # Unknown stability cannot be shown to meet the limit, so it fails rather than passing silently.
+        checks.append({"name": f"energy above hull <= {spec['max_ehull']} eV/atom",
+                       "ok": ehull is not None and ehull <= spec["max_ehull"],
+                       "detail": "no stability data" if ehull is None else f"{ehull:.3f}"})
     if spec["max_uncertainty"] is not None:
         checks.append({"name": f"uncertainty <= {spec['max_uncertainty']}", "ok": candidate["uncertainty"] <= spec["max_uncertainty"],
                        "detail": f"{candidate['uncertainty']:.3f}"})
