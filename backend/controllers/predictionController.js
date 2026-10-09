@@ -1,7 +1,7 @@
 import * as service from '../services/predictionService.js';
 
 export const predict = (db, ml) => async (req, res) => {
-  res.json({ predictions: await service.predict(db, ml, req.body.formulas) });
+  res.json({ predictions: await service.predict(db, ml, req.body.formulas, req.body.property ?? 'band_gap') });
 };
 
 export const history = (db) => (req, res) => res.json(service.recentPredictions(db));

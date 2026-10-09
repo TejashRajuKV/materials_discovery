@@ -43,7 +43,7 @@ export function runMl(args, input) {
 }
 
 export const defaultMl = {
-  predict: (formulas) => runMl(['predict', '--stdin'], { formulas }),
+  predict: (formulas, property = 'band_gap') => runMl(['predict', '--stdin'], { formulas, property }),
   discover: (payload) => runMl(['discover', '--stdin'], payload),
   explain: (formula) => runMl(['explain', '--formula', formula]),
 };

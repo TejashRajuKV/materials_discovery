@@ -3,8 +3,13 @@ import { config } from '../config/config.js';
 
 const FORMULA_RE = /^[A-Za-z0-9().\s]{1,60}$/;
 
+const PREDICT_PROPERTIES = ['band_gap', 'formation_energy', 'bulk_modulus'];
+
 export function validatePredictBody(req, res, next) {
-  const { formulas } = req.body ?? {};
+  const { formulas, property = 'band_gap' } = req.body ?? {};
+  if (!PREDICT_PROPERTIES.includes(property)) {
+    return next(new HttpError(400, `property must be one of: ${PREDICT_PROPERTIES.join(', ')}`));
+  }
   if (!Array.isArray(formulas) || formulas.length === 0) {
     return next(new HttpError(400, '`formulas` must be a non-empty array of strings'));
   }
@@ -48,11 +53,27 @@ export function validateDiscoveryBody(req, res, next) {
     return next(new HttpError(400, `crystal_system must be one of: ${CRYSTAL_SYSTEMS.join(', ')}`));
   }
   const hasStructureRule = listOf(spec.dimensionality).length > 0 || listOf(spec.crystal_system).length > 0;
+  let hasRangeRule = false;
+  for (const prop of ['formation_energy', 'bulk_modulus']) {
+    const bounds = spec[prop];
+    if (bounds === undefined || bounds === null) continue;
+    if (typeof bounds !== 'object' || Array.isArray(bounds)) {
+      return next(new HttpError(400, `${prop} must be an object with optional min and max`));
+    }
+    const given = ['min', 'max'].filter((k) => bounds[k] !== undefined && bounds[k] !== '' && bounds[k] !== null);
+    if (given.some((k) => !Number.isFinite(Number(bounds[k])))) {
+      return next(new HttpError(400, `${prop} min and max must be numbers`));
+    }
+    if (given.length === 2 && Number(bounds.min) > Number(bounds.max)) {
+      return next(new HttpError(400, `${prop}.min must not exceed ${prop}.max`));
+    }
+    if (given.length) hasRangeRule = true;
+  }
   const hasStabilityRule = spec.max_ehull !== undefined && spec.max_ehull !== null && spec.max_ehull !== '';
   if (hasStabilityRule && (!Number.isFinite(Number(spec.max_ehull)) || Number(spec.max_ehull) < 0)) {
     return next(new HttpError(400, 'max_ehull must be a non-negative number (eV/atom)'));
   }
-  if (!given.length && !hasElementRule && !hasStabilityRule && !hasStructureRule) {
+  if (!given.length && !hasElementRule && !hasStabilityRule && !hasStructureRule && !hasRangeRule) {
     return next(new HttpError(400, 'specify at least one requirement (band gap range/target, an element rule, max_ehull, or a structure rule)'));
   }
   next();

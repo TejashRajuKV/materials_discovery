@@ -23,7 +23,9 @@ export function listMaterials(db, { q, minGap, maxGap, sort, limit, offset }) {
 export function getMaterial(db, id) {
   const row = db.prepare('SELECT * FROM materials WHERE id = ?').get(id);
   if (!row) throw new HttpError(404, `material ${id} not found`);
-  return row;
+  const properties = db.prepare('SELECT * FROM material_properties WHERE formula = ? ORDER BY property')
+    .all(row.formula);
+  return { ...row, properties };
 }
 
 export function materialStats(db) {

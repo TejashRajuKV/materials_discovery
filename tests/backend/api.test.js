@@ -80,7 +80,8 @@ describe('predict', () => {
     assert.equal(hist.body.length, 1);
   });
   it('rejects malformed input', async () => {
-    for (const bad of [{}, { formulas: [] }, { formulas: 'MgO' }, { formulas: ['Mg;DROP'] }, { formulas: [1] }]) {
+    for (const bad of [{}, { formulas: [] }, { formulas: 'MgO' }, { formulas: ['Mg;DROP'] }, { formulas: [1] },
+      { formulas: ['MgO'], property: 'hardness' }]) {
       assert.equal((await post('/api/predict', bad)).status, 400, JSON.stringify(bad));
     }
   });
@@ -107,6 +108,7 @@ describe('discovery', () => {
     for (const spec of [
       {}, { band_gap: { min: 3, max: 1 } }, { band_gap: { min: 'x' } }, { exclude_elements: ['fe'] },
       { max_ehull: -0.1 }, { dimensionality: ['4D-bulk'] }, { crystal_system: ['square'] },
+      { formation_energy: { min: 1, max: 0 } }, { bulk_modulus: { min: 'stiff' } },
     ]) {
       assert.equal((await post('/api/discovery', { spec })).status, 400, JSON.stringify(spec));
     }

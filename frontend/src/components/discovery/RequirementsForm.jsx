@@ -4,6 +4,7 @@ import { parseElements, parseList } from '../../utils/format.js';
 const initial = {
   min: '1.0', max: '3.0', target: '2.0', maxUncertainty: '0.5', maxEhull: '', include: '', exclude: '', maxElements: '3',
   dimensionality: '', crystalSystem: '',
+  feMin: '', feMax: '', bmMin: '', bmMax: '',
 };
 
 export default function RequirementsForm({ onSubmit, busy }) {
@@ -21,6 +22,8 @@ export default function RequirementsForm({ onSubmit, busy }) {
       max_ehull: f.maxEhull,
       dimensionality: parseList(f.dimensionality),
       crystal_system: parseList(f.crystalSystem),
+      formation_energy: { min: f.feMin, max: f.feMax },
+      bulk_modulus: { min: f.bmMin, max: f.bmMax },
     });
   };
 
@@ -39,6 +42,17 @@ export default function RequirementsForm({ onSubmit, busy }) {
           {num('Minimum', 'min')}
           {num('Maximum', 'max')}
           {num('Target', 'target', 'ranking prefers values near this')}
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Other properties (predicted for generated candidates)</legend>
+        <div className="row">
+          {num('Formation energy min (eV/atom)', 'feMin', undefined, 'any')}
+          {num('Formation energy max (eV/atom)', 'feMax', 'negative = stable against elements', 'any')}
+        </div>
+        <div className="row">
+          {num('Bulk modulus min (GPa)', 'bmMin', undefined, 'any')}
+          {num('Bulk modulus max (GPa)', 'bmMax', undefined, 'any')}
         </div>
       </fieldset>
       <fieldset>

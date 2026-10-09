@@ -8,10 +8,10 @@ export default function PredictionCard({ result }) {
   return (
     <div className="card">
       <h3>{prettyFormula(result.formula)}</h3>
-      <p className="big">{fmt(result.prediction)} <small>eV ± {fmt(result.uncertainty)}</small></p>
+      <p className="big">{fmt(result.prediction)} <small>{result.unit ?? 'eV'} ± {fmt(result.uncertainty)}</small></p>
       {result.interval_low != null && (
         <p className="muted">
-          {Math.round((result.interval_level ?? 0.9) * 100)}% interval: {fmt(result.interval_low)} – {fmt(result.interval_high)} eV
+          {Math.round((result.interval_level ?? 0.9) * 100)}% interval: {fmt(result.interval_low)} – {fmt(result.interval_high)} {result.unit ?? 'eV'}
         </p>
       )}
       <p><ConfidenceBadge confidence={result.confidence} /> <span className="muted">model: {result.model}</span></p>

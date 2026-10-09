@@ -1,5 +1,6 @@
-export async function predict(db, ml, formulas) {
-  const { predictions } = await ml.predict(formulas);
+export async function predict(db, ml, formulas, property = 'band_gap') {
+  const { predictions } = await ml.predict(formulas, property);
+  if (property !== 'band_gap') return predictions;  // only band-gap predictions are logged in `predictions`
   const insert = db.prepare(`INSERT INTO predictions (model_version, formula, prediction, uncertainty, confidence)
     VALUES (@model_version, @formula, @prediction, @uncertainty, @confidence)`);
   db.transaction(() => {
