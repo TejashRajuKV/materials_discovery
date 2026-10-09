@@ -13,7 +13,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from ml.config import (DATA_PROCESSED, MODELS_SAVED, PROCESSED_FILE, RANDOM_SEED, TARGET,
+from ml.config import (DATA_PROCESSED, MODELS_SAVED, TRAINING_FILE, RANDOM_SEED, TARGET,
                        TARGET_UNIT)
 from ml.evaluation.error_analysis import error_analysis
 from ml.evaluation.metrics import regression_metrics
@@ -41,7 +41,7 @@ def _file_sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
-def train(tune=False, processed_file=PROCESSED_FILE, out_dir=None):
+def train(tune=False, processed_file=TRAINING_FILE, out_dir=None):
     data_path = DATA_PROCESSED / processed_file
     df = pd.read_csv(data_path)
     formulas = df["formula"].tolist()

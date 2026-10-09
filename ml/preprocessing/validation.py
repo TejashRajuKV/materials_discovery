@@ -1,8 +1,10 @@
 """Dataset-level sanity checks run after cleaning."""
 from ml.config import RAW_TARGET_COL
 
-# Band gaps above this are almost certainly unit/parsing errors in a materials DB.
-MAX_PLAUSIBLE_BAND_GAP_EV = 15.0
+# Band gaps above this are almost certainly unit/parsing errors. Set above the largest real DFT
+# gap in JARVIS dft_3d (~18 eV, solid He/Ne: wide-gap molecular insulators, not errors) so that
+# real insulators are kept while unit-scale mistakes are still rejected.
+MAX_PLAUSIBLE_BAND_GAP_EV = 25.0
 MIN_ROWS_FOR_TRAINING = 50
 
 

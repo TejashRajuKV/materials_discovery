@@ -16,8 +16,21 @@ RANDOM_SEED = 42
 TEST_SIZE = 0.2
 CV_FOLDS = 5
 
-# Raw dataset contract: a CSV with at least these columns.
+# JARVIS source (written by scripts/data/to_csv.py from ml/data/raw/dft_3d.json).
+# materials.csv: one row per jid (identity + composition). targets/band_gap.csv: long format,
+# one row per (jid, method). The band gap is taken from one DFT method so every row has the same
+# meaning; OptB88vdW covers all materials, TBmBJ only ~23% of them.
+JARVIS_MATERIALS_FILE = DATA_PROCESSED / "materials.csv"
+JARVIS_TARGETS_FILE = DATA_PROCESSED / "targets" / "band_gap.csv"
+JARVIS_BANDGAP_METHOD = "OptB88vdW"
+
+# Training table written by `preprocess` and read by train / discover / export.
+TRAINING_FILE = "band_gap_training.csv"
+# Lowest energy-above-hull (eV/atom) per formula, from the JARVIS `ehull` field. Read by discovery.
+STABILITY_FILE = "stability.csv"
+
+# Synthetic demo set (opt-in via `preprocess --dataset synthetic`). Raw dataset contract: a CSV
+# with at least these columns.
 RAW_FORMULA_COL = "formula"
 RAW_TARGET_COL = TARGET
 RAW_DEFAULT_FILE = "synthetic_demo.csv"
-PROCESSED_FILE = "materials.csv"
