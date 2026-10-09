@@ -29,6 +29,10 @@ npm run setup                                     # preprocess -> train -> expor
 
 Pinned for reproducibility: `jarvis-tools==2026.6.12` (see `requirements.txt`).
 
+Formation energy (eV/atom, all entries) and bulk modulus (GPa, the entries that have one) come from the same
+file. `preprocess` writes them to `ml/data/processed/properties/`, and `ml/main.py train-property` trains a
+model for each. Bulk moduli that are zero or negative are dropped.
+
 ## Synthetic demo (opt-in)
 
 `scripts/data/generate_synthetic_dataset.py` writes about 2,500 charge-balanceable compositions with a

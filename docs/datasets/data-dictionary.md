@@ -30,3 +30,18 @@ group, Mendeleev number, melting point, electron affinity, ionization energy, mo
 ionic radius) the fraction-weighted **mean, mean absolute deviation, min, max, range**, plus
 `n_elements`, `max_fraction`, `fraction_l2`. Missing elemental values are imputed with the column mean
 over elements.
+
+## Property table: `ml/data/processed/properties/<property>.csv`
+
+| Column | Type | Meaning |
+| --- | --- | --- |
+| `formula` | str | Reduced formula, as above. |
+| `value` | float | Formation energy (eV/atom) or bulk modulus (GPa) of the most stable entry that has a value. Bulk moduli ≤ 0 are excluded. |
+| `ehull` | float, eV/atom | `ehull` of that entry, used to choose it. |
+| `n_entries` | int | Number of JARVIS entries with this formula that have a value. |
+
+## Database: `material_properties`
+
+One row per (formula, property): `recorded` is the JARVIS value (NULL if none), and `predicted`, `uncertainty`,
+`interval_low`, `interval_high` come from the property's model. `candidates.properties` stores the same
+kind of values per discovery candidate, as JSON.

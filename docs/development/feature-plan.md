@@ -21,13 +21,14 @@ Items marked **data ready** use fields already in `ml/data/processed/materials.c
 ## Phase 2 — Better science
 
 **Status:** partly done. Done: zero-gap hurdle model, calibrated intervals, dimensionality and
-crystal-system constraints. Not started: multi-property targets, structure descriptors, CFID, GNNs.
+crystal-system constraints, formation-energy and bulk-modulus models. Not started: a third Pareto objective,
+structure descriptors, CFID, GNNs.
 Reasons for the deferred items are given inline.
 
 
 | Item | Effort | Notes |
 | --- | --- | --- |
-| Multi-property targets | L | **Not started.** Formation energy, bulk modulus, density, `ehull` as separate models. Adds objectives to the Pareto ranking. **Data ready.** Needs a `material_properties` table (already flagged in `schema.sql`) and a third objective, which changes the discovery spec and the ranking. |
+| Multi-property targets | L | **Partly done.** Formation energy and bulk modulus have models, a `material_properties` table, prediction and constraints. **Not done:** density (not modelled yet), and a third Pareto objective, which changes the ranking. |
 | Zero-gap handling | M | **Done.** Hurdle model (metal classifier + non-metal regressor) selected by grouped CV: test MAE 0.235 eV vs 0.284 eV before. Trade-off: small-gap semiconductors (0–2 eV) are worse, and a semiconductor can be called metal. |
 | Structure descriptors | M | **Not started, and blocked by design.** Structures exist only for known JARVIS entries. Generated compositions have no structure, so descriptors would not help screening until prototype-based generation (Phase 3) exists. |
 | CFID features | M | **Not started.** Downloaded but unused. The join keys and coverage need checking first, since CFID is keyed to a 2021 subset. |

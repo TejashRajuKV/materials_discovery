@@ -19,10 +19,12 @@ The per-item plan, with effort and dependencies, is in [feature-plan.md](feature
 - Zero-gap hurdle model, selected by grouped CV (held-out MAE 0.235 eV, from 0.284 eV).
 - Split-conformal 90% intervals on predictions; held-out coverage 0.909.
 - Dimensionality and crystal-system constraints for known materials.
-- The feature plan lists what is deferred and why: multi-property targets, structure descriptors, CFID.
+- Formation-energy and bulk-modulus models (random forest, 90% intervals), stored in `material_properties`.
+  Property ranges are discovery constraints; generated candidates get predicted values, so they can pass them.
+- The feature plan lists what is deferred and why: structure descriptors, CFID, the third objective.
 
 ## Next
-1. Multi-property targets (formation energy, bulk modulus): adds objectives and a `material_properties` table.
+1. A third Pareto objective from formation energy or bulk modulus, and density as another property.
 2. Prototype-based generation, which makes structure descriptors useful for screening.
 3. Long-lived ML service, to remove the per-request Python start and the 1.1 GB model reload.
 4. Calibrated uncertainty (conformal intervals) to replace raw forest spread.

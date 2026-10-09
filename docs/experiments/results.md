@@ -63,3 +63,17 @@ npm run db:seed
 ```
 
 Each run writes `experiments/001_baseline/run_<version>.json` and `ml/models/saved/band_gap/metadata.json`.
+
+## Other properties: formation energy and bulk modulus
+
+Same recipe as the band-gap model (grouped split, grouped CV, conformal intervals), with smaller forests
+so the bundles stay small. Each property uses the most stable JARVIS entry per formula. Trained by
+`python ml/main.py train-property --property <name>`.
+
+| Property | Formulas (train / test) | Model | Test MAE | Mean-baseline MAE | Test R² | 90% interval coverage |
+| --- | --- | --- | --- | --- | --- | --- |
+| Formation energy (eV/atom) | 65,319 (52,077 / 13,242) | random forest | 0.156 | 0.774 | 0.93 | 0.909 |
+| Bulk modulus (GPa) | 24,372 (19,437 / 4,935) | random forest | 16.5 | 54.5 | 0.84 | 0.903 |
+
+Interval half-widths are 0.37 eV/atom and 38.8 GPa, constant for every material. Bulk moduli below zero
+are dropped as unphysical. About 41,000 formulas have no bulk modulus in JARVIS, so that model covers less of the dataset.
