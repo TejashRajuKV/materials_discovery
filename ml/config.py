@@ -23,6 +23,7 @@ CV_FOLDS = 5
 JARVIS_MATERIALS_FILE = DATA_PROCESSED / "materials.csv"
 JARVIS_TARGETS_FILE = DATA_PROCESSED / "targets" / "band_gap.csv"
 JARVIS_BANDGAP_METHOD = "OptB88vdW"
+JARVIS_RAW_FILE = DATA_RAW / "dft_3d.json"  # full records, needed for fields not in materials.csv
 
 # Training table written by `preprocess` and read by train / discover / export.
 TRAINING_FILE = "band_gap_training.csv"

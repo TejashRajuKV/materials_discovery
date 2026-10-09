@@ -6,6 +6,8 @@ spec = {
   "include_elements": ["O"], "exclude_elements": ["Pb"],
   "max_elements": 3,
   "max_ehull": 0.05,   # eV/atom above the convex hull; unknown for generated candidates (fails)
+  "formation_energy": {"max": 0.0},       # eV/atom; known = recorded, generated = predicted
+  "bulk_modulus": {"min": 100},           # GPa
   "dimensionality": ["3D-bulk"],          # known materials only; generated candidates fail
   "crystal_system": ["cubic", "hexagonal"],  # known materials only; generated candidates fail
 }
@@ -13,6 +15,10 @@ spec = {
 from ml.config import TARGET
 from ml.representation.crystal_system import CRYSTAL_SYSTEMS
 from ml.representation.material_representation import parse_formula
+
+# Other properties with min/max ranges. Known materials use the recorded value; generated candidates use
+# the model's prediction, so the check applies to them too. Units: formation energy eV/atom, bulk modulus GPa.
+RANGE_PROPERTIES = ("formation_energy", "bulk_modulus")
 
 # JARVIS dimensionality labels, as stored in the stability table.
 DIMENSIONALITY_LABELS = ("3D-bulk", "2D-bulk", "1D-bulk", "0D-bulk", "intercalated ion", "intercalated molecule")
@@ -43,12 +49,30 @@ def normalize_spec(spec):
     spec["max_uncertainty"] = float(spec["max_uncertainty"]) if spec.get("max_uncertainty") not in (None, "") else None
     spec["max_elements"] = int(spec["max_elements"]) if spec.get("max_elements") not in (None, "") else None
     spec["max_ehull"] = _nonneg_float(spec, "max_ehull")
+    for prop in RANGE_PROPERTIES:
+        spec[prop] = _range(spec, prop)
     spec["dimensionality"] = _choices(spec, "dimensionality", DIMENSIONALITY_LABELS)
     spec["crystal_system"] = _choices(spec, "crystal_system", CRYSTAL_SYSTEMS)
     return spec
 
 
-STRUCTURE_KEYS = ("include_elements", "exclude_elements", "max_elements", "max_ehull", "dimensionality", "crystal_system")
+STRUCTURE_KEYS = ("include_elements", "exclude_elements", "max_elements", "max_ehull", "dimensionality", "crystal_system",
+                  *RANGE_PROPERTIES)
+
+
+def _range(spec, prop):
+    """Optional {min, max} for a property; None when neither bound is given."""
+    raw = spec.get(prop) or {}
+    bounds = {}
+    for key in ("min", "max"):
+        if raw.get(key) not in (None, ""):
+            try:
+                bounds[key] = float(raw[key])
+            except (TypeError, ValueError) as exc:
+                raise InvalidSpecError(f"{prop}.{key} must be a number") from exc
+    if "min" in bounds and "max" in bounds and bounds["min"] > bounds["max"]:
+        raise InvalidSpecError(f"{prop}.min must not exceed {prop}.max")
+    return bounds or None
 
 
 def _choices(spec, key, allowed):
@@ -101,6 +125,20 @@ def evaluate_constraints(candidate, spec):
         checks.append({"name": f"energy above hull <= {spec['max_ehull']} eV/atom",
                        "ok": ehull is not None and ehull <= spec["max_ehull"],
                        "detail": "no stability data" if ehull is None else f"{ehull:.3f}"})
+    for prop in RANGE_PROPERTIES:
+        bounds = spec.get(prop)
+        if not bounds:
+            continue
+        entry = (candidate.get("properties") or {}).get(prop)
+        value = None if entry is None else entry["value"]
+        if "min" in bounds:
+            checks.append({"name": f"{prop} >= {bounds['min']}",
+                           "ok": value is not None and value >= bounds["min"],
+                           "detail": "no data" if value is None else f"{value:.3f}"})
+        if "max" in bounds:
+            checks.append({"name": f"{prop} <= {bounds['max']}",
+                           "ok": value is not None and value <= bounds["max"],
+                           "detail": "no data" if value is None else f"{value:.3f}"})
     if spec["dimensionality"]:
         dim = candidate.get("dimensionality")
         checks.append({"name": f"dimensionality in {spec['dimensionality']}",

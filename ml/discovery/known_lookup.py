@@ -23,3 +23,13 @@ def load_known_lookup(path=DATA_PROCESSED / STABILITY_FILE):
             "crystal_system": crystal_system(row.spg_number),
         }
     return lookup
+
+
+def load_property_records(prop, directory=DATA_PROCESSED / "properties"):
+    """formula -> recorded value of a non-band-gap property (most stable JARVIS entry). Empty when the
+    property table has not been built."""
+    path = directory / f"{prop}.csv"
+    if not path.exists():
+        return {}
+    table = pd.read_csv(path, dtype={"formula": str})
+    return dict(zip(table["formula"], table["value"].astype(float)))

@@ -4,7 +4,9 @@ so the Express backend can drive it as a subprocess.
   python ml/main.py bootstrap                 # JARVIS preprocess -> train -> export
   python ml/main.py preprocess [--dataset jarvis|synthetic]
   python ml/main.py generate-data | train [--tune] | export
-  python ml/main.py predict --formulas NaCl MgO   (or JSON {"formulas": [...]} on stdin with --stdin)
+  python ml/main.py train-property --property formation_energy|bulk_modulus
+  python ml/main.py predict --formulas NaCl MgO [--property band_gap|formation_energy|bulk_modulus]
+                                                  (or JSON {"formulas": [...], "property": ...} with --stdin)
   python ml/main.py discover --stdin              (JSON spec on stdin)
   python ml/main.py explain --formula MgO
 """
@@ -23,11 +25,14 @@ def _read_stdin():
 
 
 def _export_materials():
-    """Write materials.json (known data + model predictions) consumed by backend seeding."""
+    """Write export.json (known data + model predictions) consumed by backend seeding."""
     import pandas as pd
 
-    from ml.config import DATA_PROCESSED, MODELS_SAVED, TRAINING_FILE, TARGET
+    from ml.config import DATA_PROCESSED, MODELS_SAVED, TARGET, TRAINING_FILE
+    from ml.discovery.known_lookup import load_property_records
     from ml.prediction.predict import load_bundle, predict_many
+    from ml.preprocessing.jarvis import PROPERTY_FIELDS
+    from ml.training.property_models import PROPERTY_NAMES, predict_property_many
     from ml.training.train import METADATA_NAME
 
     df = pd.read_csv(DATA_PROCESSED / TRAINING_FILE)
@@ -42,10 +47,29 @@ def _export_materials():
             "predicted_band_gap": pred.get("prediction"),
             "uncertainty": pred.get("uncertainty"),
         })
+    # Recorded and predicted values for every other property, one entry per (formula, property).
+    properties = []
+    formulas = df["formula"].tolist()
+    for prop in PROPERTY_NAMES:
+        recorded = load_property_records(prop)
+        if not recorded:
+            continue
+        predicted = predict_property_many(prop, formulas)
+        unit = PROPERTY_FIELDS[prop]["unit"]
+        for formula, pred in zip(formulas, predicted):
+            if formula not in recorded and "error" in pred:
+                continue
+            properties.append({
+                "formula": formula, "property": prop, "unit": unit,
+                "recorded": recorded.get(formula),
+                "predicted": pred.get("prediction"), "uncertainty": pred.get("uncertainty"),
+                "interval_low": pred.get("interval_low"), "interval_high": pred.get("interval_high"),
+                "model_version": pred.get("model_version"),
+            })
     metadata = json.loads((MODELS_SAVED / TARGET / METADATA_NAME).read_text())
-    out = {"materials": materials, "model": metadata}
+    out = {"materials": materials, "properties": properties, "model": metadata}
     (DATA_PROCESSED / "export.json").write_text(json.dumps(out))
-    return {"materials": len(materials), "model_version": metadata["version"]}
+    return {"materials": len(materials), "property_rows": len(properties), "model_version": metadata["version"]}
 
 
 def main(argv=None):
@@ -57,9 +81,12 @@ def main(argv=None):
     pre.add_argument("--dataset", choices=["jarvis", "synthetic"], default="jarvis")
     t = sub.add_parser("train")
     t.add_argument("--tune", action="store_true")
+    tp = sub.add_parser("train-property")
+    tp.add_argument("--property", required=True, choices=["formation_energy", "bulk_modulus"])
     sub.add_parser("export")
     p = sub.add_parser("predict")
     p.add_argument("--formulas", nargs="*", default=[])
+    p.add_argument("--property", default="band_gap", choices=["band_gap", "formation_energy", "bulk_modulus"])
     p.add_argument("--stdin", action="store_true")
     sub.add_parser("discover").add_argument("--stdin", action="store_true")
     e = sub.add_parser("explain")
@@ -84,10 +111,21 @@ def main(argv=None):
             run(source="jarvis")
             run_experiment()
             result = _export_materials()
+        elif args.command == "train-property":
+            from ml.training.property_models import train_property
+            meta = train_property(args.property)
+            result = {"property": args.property, "best_model": meta["best_model"], "version": meta["version"],
+                      "test_mae": meta["results"][meta["best_model"]]["test"]["mae"]}
         elif args.command == "predict":
-            from ml.prediction.predict import predict_many
-            formulas = _read_stdin().get("formulas", []) if args.stdin else args.formulas
-            result = {"predictions": predict_many(formulas)}
+            payload = _read_stdin() if args.stdin else {}
+            formulas = payload.get("formulas", []) if args.stdin else args.formulas
+            prop = payload.get("property", args.property) if args.stdin else args.property
+            if prop == "band_gap":
+                from ml.prediction.predict import predict_many
+                result = {"predictions": predict_many(formulas)}
+            else:
+                from ml.training.property_models import predict_property_many
+                result = {"predictions": predict_property_many(prop, formulas)}
         elif args.command == "discover":
             from ml.discovery.candidate_search import run_discovery
             payload = _read_stdin()
