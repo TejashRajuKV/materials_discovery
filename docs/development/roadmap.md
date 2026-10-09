@@ -2,14 +2,22 @@
 
 | Version | Content | Status |
 | --- | --- | --- |
-| MVP | dataset → features → ML prediction → search → ranking → React dashboard | **built** (on synthetic data) |
+| MVP | dataset → features → ML prediction → search → ranking → React dashboard | **built** (JARVIS dft_3d) |
 | V2 | uncertainty, Pareto ranking, explanations, experiments page | **built** (single property) |
-| V3 | candidate generation, layered validation, experiment tracking | **partly built** (substitution generation; stability layer is a placeholder) |
+| V3 | candidate generation, layered validation, experiment tracking | **partly built**: substitution generation and stability filter for known materials are done; generated candidates have no stability data |
 | V4 | structure/graph models, active learning, generative design, multi-property optimisation | not started |
 
-## Immediate next steps
-1. **Real dataset** (see `datasets/dataset-selection.md`) and rewrite analysis/results docs.
-2. Literature review (`research/literature-review.md`).
-3. Stability data → implement `ml/validation/stability_validation.py`.
-4. Multiple target properties (adds a third objective and `material_properties` table).
-5. Calibrated uncertainty (conformal / ensembles), long-lived ML service, auth, DB backups, CI.
+The per-item plan, with effort and dependencies, is in [feature-plan.md](feature-plan.md).
+
+## Done in Phase 1
+- Real dataset: JARVIS dft_3d, wired into preprocessing, training, discovery, and the database.
+- Stability layer on `ehull` for known materials, plus the `max_ehull` discovery constraint.
+- Portable Python resolution (`.venv`, `PYTHON_BIN`) for the backend and npm scripts.
+- Browser check of every page, and a fix for the discovery form's number-input step.
+
+## Next
+1. Multi-property targets (formation energy, bulk modulus): adds objectives and a `material_properties` table.
+2. Zero-gap handling: metal/non-metal classifier, then a regressor on non-metals.
+3. Long-lived ML service, to remove the per-request Python start and the 1.1 GB model reload.
+4. Calibrated uncertainty (conformal intervals) to replace raw forest spread.
+5. Auth, job queue, and database backups before anything is shared.
