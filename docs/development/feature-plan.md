@@ -20,14 +20,19 @@ Items marked **data ready** use fields already in `ml/data/processed/materials.c
 
 ## Phase 2 — Better science
 
+**Status:** partly done. Done: zero-gap hurdle model, calibrated intervals, dimensionality and
+crystal-system constraints. Not started: multi-property targets, structure descriptors, CFID, GNNs.
+Reasons for the deferred items are given inline.
+
+
 | Item | Effort | Notes |
 | --- | --- | --- |
-| Multi-property targets | L | Formation energy, bulk modulus, density, `ehull` as separate models. Adds objectives to the Pareto ranking. **Data ready.** Needs a `material_properties` table (already flagged in `schema.sql`). |
-| Zero-gap handling | M | Metal vs non-metal classifier, then a regressor on non-metals. About 74% of targets are zero, so this is the most likely accuracy gain for the band-gap model. |
-| Structure descriptors | M | Features from the 93k structures in `ml/data/processed/structures/` (coordination, density, lattice). Fills `ml/representation/structure_features.py`. **Data ready.** |
-| CFID features | M | Downloaded but unused. Needs an ID join to the main set. |
-| Calibrated uncertainty | M | Conformal intervals with coverage guarantees, replacing raw forest spread. |
-| Dimensionality and crystal-system constraints | S | **Data ready.** Extra filters in the discovery spec. |
+| Multi-property targets | L | **Not started.** Formation energy, bulk modulus, density, `ehull` as separate models. Adds objectives to the Pareto ranking. **Data ready.** Needs a `material_properties` table (already flagged in `schema.sql`) and a third objective, which changes the discovery spec and the ranking. |
+| Zero-gap handling | M | **Done.** Hurdle model (metal classifier + non-metal regressor) selected by grouped CV: test MAE 0.235 eV vs 0.284 eV before. Trade-off: small-gap semiconductors (0–2 eV) are worse, and a semiconductor can be called metal. |
+| Structure descriptors | M | **Not started, and blocked by design.** Structures exist only for known JARVIS entries. Generated compositions have no structure, so descriptors would not help screening until prototype-based generation (Phase 3) exists. |
+| CFID features | M | **Not started.** Downloaded but unused. The join keys and coverage need checking first, since CFID is keyed to a 2021 subset. |
+| Calibrated uncertainty | M | **Done.** Split-conformal intervals (90%) from out-of-fold residuals; held-out coverage 0.909. Intervals are constant width, not adaptive. Forest spread stays as the per-material signal. |
+| Dimensionality and crystal-system constraints | S | **Done** for known materials (the most stable polymorph's attributes). Generated candidates fail when these are set, as with `max_ehull`. |
 | Graph neural networks (CGCNN / MEGNet) | L | Trained on structures. Biggest accuracy lever, biggest cost. Roadmap V4. |
 
 ## Phase 3 — Smarter discovery

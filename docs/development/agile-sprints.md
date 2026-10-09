@@ -15,7 +15,7 @@
 | 11–12 | Backend + DB | done; `node:sqlite` (no native build) |
 | 13–17 | Frontend, explorer, discovery, candidates, charts | done (SVG charts); every page checked in a browser |
 | 18 | Experiments | registry + page; runner writes JSON |
-| 19 | Testing | pytest 36 · node:test 12 · vitest 5 |
+| 19 | Testing | pytest 53 · node:test 12 · vitest 5 |
 | 20 | Reliability | input validation, timeouts, error handling; rate limiting/auth/backups pending |
 | 21 | Integration | verified end-to-end (predict, discovery, UI) on the real model |
 | 22–23 | Benchmarking, docs | docs refreshed for JARVIS; benchmark versioning pending |
