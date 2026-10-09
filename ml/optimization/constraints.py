@@ -6,10 +6,16 @@ spec = {
   "include_elements": ["O"], "exclude_elements": ["Pb"],
   "max_elements": 3,
   "max_ehull": 0.05,   # eV/atom above the convex hull; unknown for generated candidates (fails)
+  "dimensionality": ["3D-bulk"],          # known materials only; generated candidates fail
+  "crystal_system": ["cubic", "hexagonal"],  # known materials only; generated candidates fail
 }
 """
 from ml.config import TARGET
+from ml.representation.crystal_system import CRYSTAL_SYSTEMS
 from ml.representation.material_representation import parse_formula
+
+# JARVIS dimensionality labels, as stored in the stability table.
+DIMENSIONALITY_LABELS = ("3D-bulk", "2D-bulk", "1D-bulk", "0D-bulk", "intercalated ion", "intercalated molecule")
 
 
 class InvalidSpecError(ValueError):
@@ -29,7 +35,7 @@ def normalize_spec(spec):
                 raise InvalidSpecError(f"{TARGET}.{key} must be a number") from exc
     if "min" in band and "max" in band and band["min"] > band["max"]:
         raise InvalidSpecError(f"{TARGET}.min must not exceed {TARGET}.max")
-    if not band and not any(k in spec for k in ("include_elements", "exclude_elements", "max_elements", "max_ehull")):
+    if not band and not any(k in spec for k in STRUCTURE_KEYS):
         raise InvalidSpecError("specify at least one requirement (property range/target or element constraint)")
     spec[TARGET] = band
     spec["include_elements"] = [str(e) for e in spec.get("include_elements") or []]
@@ -37,7 +43,24 @@ def normalize_spec(spec):
     spec["max_uncertainty"] = float(spec["max_uncertainty"]) if spec.get("max_uncertainty") not in (None, "") else None
     spec["max_elements"] = int(spec["max_elements"]) if spec.get("max_elements") not in (None, "") else None
     spec["max_ehull"] = _nonneg_float(spec, "max_ehull")
+    spec["dimensionality"] = _choices(spec, "dimensionality", DIMENSIONALITY_LABELS)
+    spec["crystal_system"] = _choices(spec, "crystal_system", CRYSTAL_SYSTEMS)
     return spec
+
+
+STRUCTURE_KEYS = ("include_elements", "exclude_elements", "max_elements", "max_ehull", "dimensionality", "crystal_system")
+
+
+def _choices(spec, key, allowed):
+    """Normalise a list of allowed labels; an empty list means no constraint."""
+    values = spec.get(key) or []
+    if isinstance(values, str):
+        values = [values]
+    values = [str(v).strip() for v in values if str(v).strip()]
+    unknown = [v for v in values if v not in allowed]
+    if unknown:
+        raise InvalidSpecError(f"{key}: unknown {unknown}; expected one of {list(allowed)}")
+    return values or None
 
 
 def _nonneg_float(spec, key):
@@ -78,6 +101,16 @@ def evaluate_constraints(candidate, spec):
         checks.append({"name": f"energy above hull <= {spec['max_ehull']} eV/atom",
                        "ok": ehull is not None and ehull <= spec["max_ehull"],
                        "detail": "no stability data" if ehull is None else f"{ehull:.3f}"})
+    if spec["dimensionality"]:
+        dim = candidate.get("dimensionality")
+        checks.append({"name": f"dimensionality in {spec['dimensionality']}",
+                       "ok": dim is not None and dim in spec["dimensionality"],
+                       "detail": "no structure data" if dim is None else dim})
+    if spec["crystal_system"]:
+        system = candidate.get("crystal_system")
+        checks.append({"name": f"crystal system in {spec['crystal_system']}",
+                       "ok": system is not None and system in spec["crystal_system"],
+                       "detail": "no structure data" if system is None else system})
     if spec["max_uncertainty"] is not None:
         checks.append({"name": f"uncertainty <= {spec['max_uncertainty']}", "ok": candidate["uncertainty"] <= spec["max_uncertainty"],
                        "detail": f"{candidate['uncertainty']:.3f}"})

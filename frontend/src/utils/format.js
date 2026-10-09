@@ -6,3 +6,6 @@ export const metalLabel = (gap) => (gap === 0 ? 'metal / zero gap' : '');
 export const prettyFormula = (formula) => String(formula).replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[d]);
 
 export const parseElements = (text) => text.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+
+/** Comma-separated labels that may contain spaces, e.g. "3D-bulk, intercalated ion". */
+export const parseList = (text) => text.split(',').map((s) => s.trim()).filter(Boolean);

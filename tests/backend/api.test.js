@@ -104,7 +104,10 @@ describe('discovery', () => {
   });
   it('rejects invalid specs before starting a job', async () => {
     const before = calls.discover;
-    for (const spec of [{}, { band_gap: { min: 3, max: 1 } }, { band_gap: { min: 'x' } }, { exclude_elements: ['fe'] }]) {
+    for (const spec of [
+      {}, { band_gap: { min: 3, max: 1 } }, { band_gap: { min: 'x' } }, { exclude_elements: ['fe'] },
+      { max_ehull: -0.1 }, { dimensionality: ['4D-bulk'] }, { crystal_system: ['square'] },
+    ]) {
       assert.equal((await post('/api/discovery', { spec })).status, 400, JSON.stringify(spec));
     }
     assert.equal(calls.discover, before);

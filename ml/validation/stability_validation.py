@@ -4,23 +4,11 @@ ehull is 0 for a stable compound and grows with how far it sits above the hull. 
 with a JARVIS entry have a value, so generated candidates report `not_assessed` rather than a
 guessed score. Thresholds are conventions, not physics; change them here if needed.
 """
-import pandas as pd
-
-from ml.config import DATA_PROCESSED, STABILITY_FILE
-
 PASS_EHULL = 0.025  # eV/atom: at or below this, treated as on or very near the hull
 
 # The layer informs but does not exclude by default: most JARVIS entries are above the hull, and
 # excluding them all would change every discovery result. Hard limits come from the `max_ehull`
 # requirement, which is evaluated as a constraint.
-
-
-def load_ehull_lookup(path=DATA_PROCESSED / STABILITY_FILE):
-    """Map formula -> lowest ehull (eV/atom). Empty when the stability table has not been built."""
-    if not path.exists():
-        return {}
-    table = pd.read_csv(path, dtype={"formula": str})
-    return dict(zip(table["formula"], table["ehull"].astype(float)))
 
 
 def validate_stability(prediction):

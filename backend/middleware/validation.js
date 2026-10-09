@@ -18,6 +18,9 @@ export function validatePredictBody(req, res, next) {
   next();
 }
 
+const DIMENSIONALITY = ['3D-bulk', '2D-bulk', '1D-bulk', '0D-bulk', 'intercalated ion', 'intercalated molecule'];
+const CRYSTAL_SYSTEMS = ['triclinic', 'monoclinic', 'orthorhombic', 'tetragonal', 'trigonal', 'hexagonal', 'cubic'];
+
 export function validateDiscoveryBody(req, res, next) {
   const { spec } = req.body ?? {};
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) {
@@ -36,12 +39,21 @@ export function validateDiscoveryBody(req, res, next) {
     return next(new HttpError(400, 'band_gap.min must not exceed band_gap.max'));
   }
   const hasElementRule = spec.include_elements?.length || spec.exclude_elements?.length || spec.max_elements;
+  const listOf = (value) => (value === undefined || value === null || value === '' ? [] : [].concat(value));
+  const badLabel = (values, allowed) => listOf(values).some((v) => !allowed.includes(v));
+  if (badLabel(spec.dimensionality, DIMENSIONALITY)) {
+    return next(new HttpError(400, `dimensionality must be one of: ${DIMENSIONALITY.join(', ')}`));
+  }
+  if (badLabel(spec.crystal_system, CRYSTAL_SYSTEMS)) {
+    return next(new HttpError(400, `crystal_system must be one of: ${CRYSTAL_SYSTEMS.join(', ')}`));
+  }
+  const hasStructureRule = listOf(spec.dimensionality).length > 0 || listOf(spec.crystal_system).length > 0;
   const hasStabilityRule = spec.max_ehull !== undefined && spec.max_ehull !== null && spec.max_ehull !== '';
   if (hasStabilityRule && (!Number.isFinite(Number(spec.max_ehull)) || Number(spec.max_ehull) < 0)) {
     return next(new HttpError(400, 'max_ehull must be a non-negative number (eV/atom)'));
   }
-  if (!given.length && !hasElementRule && !hasStabilityRule) {
-    return next(new HttpError(400, 'specify at least one requirement (band gap range/target, an element rule, or max_ehull)'));
+  if (!given.length && !hasElementRule && !hasStabilityRule && !hasStructureRule) {
+    return next(new HttpError(400, 'specify at least one requirement (band gap range/target, an element rule, max_ehull, or a structure rule)'));
   }
   next();
 }

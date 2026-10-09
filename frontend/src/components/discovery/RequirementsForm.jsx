@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { parseElements } from '../../utils/format.js';
+import { parseElements, parseList } from '../../utils/format.js';
 
-const initial = { min: '1.0', max: '3.0', target: '2.0', maxUncertainty: '0.5', maxEhull: '', include: '', exclude: '', maxElements: '3' };
+const initial = {
+  min: '1.0', max: '3.0', target: '2.0', maxUncertainty: '0.5', maxEhull: '', include: '', exclude: '', maxElements: '3',
+  dimensionality: '', crystalSystem: '',
+};
 
 export default function RequirementsForm({ onSubmit, busy }) {
   const [f, setF] = useState(initial);
@@ -16,6 +19,8 @@ export default function RequirementsForm({ onSubmit, busy }) {
       exclude_elements: parseElements(f.exclude),
       max_elements: f.maxElements,
       max_ehull: f.maxEhull,
+      dimensionality: parseList(f.dimensionality),
+      crystal_system: parseList(f.crystalSystem),
     });
   };
 
@@ -52,6 +57,16 @@ export default function RequirementsForm({ onSubmit, busy }) {
           </label>
           <label>Exclude elements
             <input value={f.exclude} onChange={set('exclude')} placeholder="e.g. Pb, Cd" />
+          </label>
+        </div>
+        <div className="row">
+          <label>Dimensionality
+            <input value={f.dimensionality} onChange={set('dimensionality')} placeholder="e.g. 3D-bulk, 2D-bulk" />
+            <small className="muted">known materials only; blank = any</small>
+          </label>
+          <label>Crystal system
+            <input value={f.crystalSystem} onChange={set('crystalSystem')} placeholder="e.g. cubic, hexagonal" />
+            <small className="muted">known materials only; blank = any</small>
           </label>
         </div>
       </fieldset>

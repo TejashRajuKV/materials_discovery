@@ -10,19 +10,23 @@ from ml.config import JARVIS_BANDGAP_METHOD, JARVIS_MATERIALS_FILE, JARVIS_TARGE
 
 
 def build_stability_table(materials_path=JARVIS_MATERIALS_FILE):
-    """One row per formula: the lowest `ehull` (eV/atom) over its JARVIS entries, i.e. its most
-    stable polymorph. Missing `ehull` values are skipped; formulas that cannot be parsed are dropped."""
+    """One row per formula, describing its most stable polymorph (lowest `ehull`, eV/atom):
+    ehull, dimensionality, space group, and how many JARVIS entries share the formula.
+    Entries without an `ehull` value are skipped; formulas that cannot be parsed are dropped."""
     from ml.preprocessing.cleaning import canonical_formula
 
     if not materials_path.exists():
         raise FileNotFoundError(f"{materials_path} not found; see load_jarvis_band_gap for how to create it.")
-    m = pd.read_csv(materials_path, usecols=["jid", "formula", "ehull"], dtype={"jid": str, "formula": str},
+    m = pd.read_csv(materials_path, usecols=["jid", "formula", "ehull", "dimensionality", "spg_number", "spg_symbol"],
+                    dtype={"jid": str, "formula": str, "dimensionality": str, "spg_symbol": str},
                     keep_default_na=False)
     m["ehull"] = pd.to_numeric(m["ehull"], errors="coerce")
     m = m.dropna(subset=["ehull"])
     m["formula"] = m["formula"].map(canonical_formula)
     m = m.dropna(subset=["formula"])
-    out = m.groupby("formula", as_index=False).agg(ehull=("ehull", "min"), n_entries=("jid", "count"))
+    counts = m.groupby("formula")["jid"].count().rename("n_entries")
+    most_stable = m.sort_values(["ehull", "jid"]).drop_duplicates("formula", keep="first").set_index("formula")
+    out = most_stable[["ehull", "dimensionality", "spg_number", "spg_symbol"]].join(counts).reset_index()
     return out.sort_values("formula").reset_index(drop=True)
 
 
