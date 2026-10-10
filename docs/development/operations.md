@@ -19,9 +19,9 @@ The interpreter is chosen in `scripts/python-bin.js`: `PYTHON_BIN` if set, then 
 
 ## Memory
 
-The band-gap model needs several GB of memory once loaded (its forests are over 1 GB on disk). Loading
-can fail with a `MemoryError` when other applications use most of the machine's commit limit. In that case,
-close other applications, or run the resident service so the model is loaded only once.
+The band-gap model is 0.35 GB on disk, since its forests have minimum leaf 5. Loading can still fail with a
+`MemoryError` when other applications use most of the machine's commit limit. In that case, close other
+applications, or run the resident service so the model is loaded only once.
 
 ## Backups
 

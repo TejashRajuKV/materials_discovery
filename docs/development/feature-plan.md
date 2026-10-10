@@ -29,7 +29,7 @@ Reasons for the deferred items are given inline.
 | Item | Effort | Notes |
 | --- | --- | --- |
 | Multi-property targets | L | **Partly done.** Formation energy and bulk modulus have models, a `material_properties` table, prediction and constraints. **Not done:** density (not modelled yet), and a third Pareto objective, which changes the ranking. |
-| Zero-gap handling | M | **Done.** Hurdle model (metal classifier + non-metal regressor) selected by grouped CV: test MAE 0.235 eV vs 0.284 eV before. Trade-off: small-gap semiconductors (0–2 eV) are worse, and a semiconductor can be called metal. |
+| Zero-gap handling | M | **Done.** Hurdle model (metal classifier + non-metal regressor) selected by grouped CV: test MAE 0.235 eV vs 0.284 eV before (0.248 eV after the smaller forests, see Smaller model). Trade-off: small-gap semiconductors (0–2 eV) are worse, and a semiconductor can be called metal. |
 | Structure descriptors | M | **Not started, and blocked by design.** Structures exist only for known JARVIS entries. Generated compositions have no structure, so descriptors would not help screening until prototype-based generation (Phase 3) exists. |
 | CFID features | M | **Not started.** Downloaded but unused. The join keys and coverage need checking first, since CFID is keyed to a 2021 subset. |
 | Calibrated uncertainty | M | **Done.** Split-conformal intervals (90%) from out-of-fold residuals; held-out coverage 0.909. Intervals are constant width, not adaptive. Forest spread stays as the per-material signal. |
@@ -44,7 +44,7 @@ Reasons for the deferred items are given inline.
 | Prototype-based generation | M | Reuse known crystal structures with new elements. Needs the structure descriptors. |
 | Active learning loop | L | Pick the most informative candidates for DFT or experiment, then retrain. Needs a place to record results. |
 | Adjustable Pareto weights | S | **Done** for the within-front score (`weights` in the spec, and in the form). The front itself does not depend on the weights. |
-| Saved searches and re-run alerts | M | Store a spec, re-run it after each model release, and show what changed. |
+| Saved searches and re-run alerts | M | **Partly done.** Save a spec under a name and re-run it on the Discovery page. Alerts and automatic re-runs after a model release are not done. |
 
 ## Phase 4 — Data platform
 
@@ -52,9 +52,9 @@ Reasons for the deferred items are given inline.
 
 | Item | Effort | Notes |
 | --- | --- | --- |
-| More sources | M each | Materials Project (already downloaded), OQMD, AFLOW, and experimental gaps for validation. |
+| More sources | M each | **Not started.** Materials Project (already downloaded), OQMD, AFLOW, and experimental gaps for validation. |
 | One-command refresh | M | Download, process, retrain, re-seed, and a diff of the results. |
-| Data quality report page | M | Outliers, duplicates, and missing fields per dataset. |
+| Data quality report page | M | **Done** (`/data`): what preprocessing dropped and merged, and the target's shape. Missing-field counts per source are not shown yet. |
 
 ## Phase 5 — User-facing features
 
@@ -62,10 +62,10 @@ Reasons for the deferred items are given inline.
 
 | Item | Effort | Notes |
 | --- | --- | --- |
-| 3D structure viewer | M | Render each candidate's crystal with 3Dmol.js. Needs the structures already on disk. |
+| 3D structure viewer | M | **Done** for known materials, as an SVG unit-cell viewer with drag to rotate (no new dependency). Generated candidates have no structure. |
 | Export | S | **CSV done** for discovery results (`/api/discovery/:id/export.csv`). JSON and a per-candidate PDF are not done. |
 | Model comparison page | S | Read the `models` table and show metrics side by side, plus error plots by gap range. |
-| Periodic-table element picker | S | Replace typing element symbols with a clickable table. |
+| Periodic-table element picker | S | **Done** in the discovery form: click to require, click again to exclude. |
 
 ## Phase 6 — Operations and multi-user
 
@@ -74,8 +74,8 @@ Reasons for the deferred items are given inline.
 | Item | Effort | Notes |
 | --- | --- | --- |
 | Resident ML service | M | **Done** (`ml/service.py`, opt-in with `ML_SERVICE_URL`). Predict is about 0.5 s warm, against 6–7 s. The 1.2 GB band-gap model is still large in memory. |
-| Smaller model | S | **Not done.** Pruning the band-gap forest changes the model, so it needs a retrain and a metrics comparison. The property models already use smaller forests. |
-| Job queue for discovery | M | Survive restarts and run jobs in parallel. |
+| Smaller model | S | **Done.** Band-gap forests use minimum leaf 5 (was 1). Bundle 0.35 GB (was 1.24 GB). Held-out MAE 0.248 eV (was 0.235). The property models already used smaller forests. |
+| Job queue for discovery | M | **Partly done.** Jobs left running by a stopped server are marked failed at startup. Jobs still run in-process, not from a queue. |
 | Auth and per-user history | L | Needed before anything is shared. |
 | Automated database backups | S | **Done as a script** (`scripts/backup-db.js`, with retention). Scheduling it is left to the host. |
 
@@ -85,9 +85,9 @@ Reasons for the deferred items are given inline.
 
 | Item | Effort | Notes |
 | --- | --- | --- |
-| Experiment tracking UI | M | Compare the runs in `experiments/` over time. Nothing reads them yet. |
+| Experiment tracking UI | M | **Not done.** Only one run exists, so there is nothing to compare yet. |
 | Versioned benchmark | S | Fixed held-out set, with results recorded per model release. |
-| Literature and database links | S | Link candidates to Materials Project or ICSD entries where they exist. |
+| Literature and database links | S | **Partly done**: a literature search link on material details. Materials Project and ICSD links need the exact identifiers and URL formats checked first. |
 
 ## Decisions needed before building
 
