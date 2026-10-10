@@ -89,6 +89,12 @@ Reasons for the deferred items are given inline.
 | Versioned benchmark | S | Fixed held-out set, with results recorded per model release. |
 | Literature and database links | S | **Partly done**: a literature search link on material details. Materials Project and ICSD links need the exact identifiers and URL formats checked first. |
 
+## Decisions (taken)
+
+- **Hosting:** local-only for now. Auth and a real job queue wait until other people use it.
+- **Low confidence:** a warning, not a failure (changed in this round). Use `max_uncertainty` to exclude it. Strict property specs now return generated candidates, 3 instead of 0 in the example.
+- **Stability for generated candidates:** still "not assessed". Training an `ehull` model is open work.
+
 ## Decisions needed before building
 
 1. **Stability for generated candidates.** `ehull` exists only for known materials. Options: (a) apply the filter to known materials only and mark generated candidates "not assessed"; (b) train an `ehull` model and predict it for candidates, with its own uncertainty. (a) is quick and honest. (b) is more useful but a new model to validate.

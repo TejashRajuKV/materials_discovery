@@ -4,8 +4,10 @@ from ml.validation.stability_validation import validate_stability
 
 
 def uncertainty_layer(prediction):
+    # Low confidence is a warning, not a failure: it marks a prediction to check, and a spec that needs
+    # certainty uses max_uncertainty to exclude it. Failing it hid every candidate under strict specs.
     conf = prediction["confidence"]
-    status = {"high": "pass", "recorded": "pass", "medium": "warn", "low": "fail"}[conf]
+    status = {"high": "pass", "recorded": "pass", "medium": "warn", "low": "warn"}[conf]
     return {"layer": "uncertainty", "status": status,
             "checks": [{"name": "model_confidence", "ok": conf != "low", "detail": f"{conf} (std={prediction['uncertainty']})"}]}
 

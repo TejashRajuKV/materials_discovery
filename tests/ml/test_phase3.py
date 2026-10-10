@@ -56,3 +56,9 @@ def test_service_returns_structured_errors_without_models():
     assert dispatch("/nope", {})["error"] == "NotFound"
     doc = dispatch("/predict", {"formulas": ["NaCl"], "property": "hardness"})
     assert doc["error"] == "FileNotFoundError"
+
+
+def test_low_confidence_warns_instead_of_failing():
+    from ml.validation.candidate_validation import uncertainty_layer
+    assert uncertainty_layer({"confidence": "low", "uncertainty": 1.2})["status"] == "warn"
+    assert uncertainty_layer({"confidence": "high", "uncertainty": 0.1})["status"] == "pass"
