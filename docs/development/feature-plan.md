@@ -52,7 +52,7 @@ Reasons for the deferred items are given inline.
 
 | Item | Effort | Notes |
 | --- | --- | --- |
-| More sources | M each | **Not started.** Materials Project (already downloaded), OQMD, AFLOW, and experimental gaps for validation. |
+| More sources | M each | **Partly done.** Materials Project is used for external validation, not training: the model generalises much worse to novel formulas and PBE labels than its JARVIS test score suggests (see `docs/experiments/results.md`). OQMD, AFLOW, and experimental gaps are not started. |
 | One-command refresh | M | Download, process, retrain, re-seed, and a diff of the results. |
 | Data quality report page | M | **Done** (`/data`): what preprocessing dropped and merged, and the target's shape. Missing-field counts per source are not shown yet. |
 

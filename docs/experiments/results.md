@@ -77,3 +77,30 @@ so the bundles stay small. Each property uses the most stable JARVIS entry per f
 
 Interval half-widths are 0.37 eV/atom and 38.8 GPa, constant for every material. Bulk moduli below zero
 are dropped as unphysical. About 41,000 formulas have no bulk modulus in JARVIS, so that model covers less of the dataset.
+
+## External validation: Materials Project PBE gaps
+
+`ml/validation/external_benchmark.py` checks the band-gap model against the Materials Project gaps in
+`mp_3d.json` (PBE, a different DFT method from JARVIS's OptB88vdW). Run it with
+`python -c "from ml.validation.external_benchmark import run_benchmark; run_benchmark()"`. The result JSON
+goes to `experiments/external/` (git-ignored).
+
+**Method agreement** (31,140 formulas present in both sources): JARVIS and PBE gaps differ by 0.22 eV MAE
+(correlation 0.93), and JARVIS is on average 0.13 eV lower. This is the floor for any model trained on
+JARVIS labels, whatever its architecture.
+
+**Generalisation to novel formulas** (25,287 formulas absent from the JARVIS training set):
+
+| Metric | Value |
+| --- | --- |
+| MAE | 0.80 eV (JARVIS test set: 0.25 eV) |
+| RMSE | 1.24 eV |
+| R² | 0.41 (JARVIS test set: 0.71) |
+| 90% interval coverage | 0.68 (target 0.90) |
+
+By gap range (MAE, eV): metals 0.51, 0–1 eV 0.86, 1–2 eV 0.81, 2–4 eV 1.07, above 4 eV 0.93.
+
+**What this means.** The model's JARVIS test score overstates how well it predicts new compositions or
+PBE labels. Part of the gap is the method difference, which accounts for about 0.2 eV. The rest comes from
+composition extrapolation. The intervals were calibrated on JARVIS, so they are too narrow for these
+labels. Anything that uses the model on new chemistry should treat its intervals as optimistic.
