@@ -27,7 +27,8 @@ def load_source(source):
     raise ValueError(f"unknown source {source!r}; expected one of {SOURCES}")
 
 
-def run(source="jarvis", out_dir=DATA_PROCESSED):
+def run(source="jarvis", out_dir=DATA_PROCESSED, extra_tables=True):
+    """Write the training table; for JARVIS also the stability and property tables, unless extra_tables is False."""
     raw = load_source(source)
     df, report = clean(raw)
     ok, problems = validate_dataset(df)
@@ -37,7 +38,7 @@ def run(source="jarvis", out_dir=DATA_PROCESSED):
 
     out_dir.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_dir / TRAINING_FILE, index=False)
-    if source == "jarvis":
+    if source == "jarvis" and extra_tables:
         stability = build_stability_table()
         stability.to_csv(out_dir / STABILITY_FILE, index=False)
         report["stability"] = {"formulas": int(len(stability)), "below_0.025_eV_per_atom": int((stability.ehull <= 0.025).sum())}

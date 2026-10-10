@@ -69,7 +69,7 @@ def test_pipeline_writes_training_table_from_jarvis(tmp_path, monkeypatch):
                         lambda: load_jarvis_band_gap(materials, targets))
 
     out = tmp_path / "out"
-    report = pipeline.run(source="jarvis", out_dir=out)
+    report = pipeline.run(source="jarvis", out_dir=out, extra_tables=False)  # stability and property tables need the full dataset
 
     assert report["valid"] and report["source"] == "jarvis"
     assert report["merged_duplicates"] == 1
