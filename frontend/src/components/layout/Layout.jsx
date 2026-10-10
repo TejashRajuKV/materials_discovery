@@ -8,6 +8,7 @@ const links = [
   ['/discovery', 'Discovery'],
   ['/models', 'Models'],
   ['/experiments', 'Experiments'],
+  ['/data', 'Data quality'],
 ];
 
 export default function Layout() {

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { parseElements, parseList } from '../../utils/format.js';
+import ElementPicker from './ElementPicker.jsx';
 
 const initial = {
   min: '1.0', max: '3.0', target: '2.0', maxUncertainty: '0.5', maxEhull: '', include: '', exclude: '', maxElements: '3',
@@ -8,26 +9,30 @@ const initial = {
   wGap: '', wUnc: '',
 };
 
-export default function RequirementsForm({ onSubmit, busy }) {
+/** The discovery spec the backend expects, built from the form fields. */
+export const buildSpec = (f) => ({
+  band_gap: { min: f.min, max: f.max, target: f.target },
+  max_uncertainty: f.maxUncertainty,
+  include_elements: parseElements(f.include),
+  exclude_elements: parseElements(f.exclude),
+  max_elements: f.maxElements,
+  max_ehull: f.maxEhull,
+  dimensionality: parseList(f.dimensionality),
+  crystal_system: parseList(f.crystalSystem),
+  formation_energy: { min: f.feMin, max: f.feMax },
+  bulk_modulus: { min: f.bmMin, max: f.bmMax },
+  // Blank means the default ranking weights; otherwise the two weights are normalised by the engine.
+  weights: f.wGap === '' && f.wUnc === '' ? undefined : { gap_distance: f.wGap || 0, uncertainty: f.wUnc || 0 },
+});
+
+export default function RequirementsForm({ onSubmit, onSave, busy }) {
   const [f, setF] = useState(initial);
+  const [saveName, setSaveName] = useState('');
   const set = (key) => (e) => setF((s) => ({ ...s, [key]: e.target.value }));
 
   const submit = (e) => {
     e.preventDefault();
-    onSubmit({
-      band_gap: { min: f.min, max: f.max, target: f.target },
-      max_uncertainty: f.maxUncertainty,
-      include_elements: parseElements(f.include),
-      exclude_elements: parseElements(f.exclude),
-      max_elements: f.maxElements,
-      max_ehull: f.maxEhull,
-      dimensionality: parseList(f.dimensionality),
-      crystal_system: parseList(f.crystalSystem),
-      formation_energy: { min: f.feMin, max: f.feMax },
-      bulk_modulus: { min: f.bmMin, max: f.bmMax },
-      // Blank means the default ranking weights; otherwise the two weights are normalised by the engine.
-      weights: f.wGap === '' && f.wUnc === '' ? undefined : { gap_distance: f.wGap || 0, uncertainty: f.wUnc || 0 },
-    });
+    onSubmit(buildSpec(f));
   };
 
   const num = (label, key, hint, step = '0.1') => (
@@ -76,6 +81,11 @@ export default function RequirementsForm({ onSubmit, busy }) {
             <input value={f.exclude} onChange={set('exclude')} placeholder="e.g. Pb, Cd" />
           </label>
         </div>
+        <ElementPicker
+          include={parseElements(f.include)}
+          exclude={parseElements(f.exclude)}
+          onChange={({ include, exclude }) => setF((s) => ({ ...s, include: include.join(', '), exclude: exclude.join(', ') }))}
+        />
         <div className="row">
           <label>Dimensionality
             <input value={f.dimensionality} onChange={set('dimensionality')} placeholder="e.g. 3D-bulk, 2D-bulk" />
@@ -95,6 +105,16 @@ export default function RequirementsForm({ onSubmit, busy }) {
         </div>
       </fieldset>
       <button type="submit" disabled={busy}>{busy ? 'Starting…' : 'Start discovery'}</button>
+      {onSave && (
+        <div className="row">
+          <label>Save this requirement set as
+            <input value={saveName} onChange={(e) => setSaveName(e.target.value)} placeholder="e.g. wide-gap oxides" maxLength={80} />
+          </label>
+          <button type="button" disabled={busy || !saveName.trim()} onClick={() => { onSave(saveName.trim(), buildSpec(f)); setSaveName(''); }}>
+            Save search
+          </button>
+        </div>
+      )}
     </form>
   );
 }

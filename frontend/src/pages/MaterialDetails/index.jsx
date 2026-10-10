@@ -4,6 +4,7 @@ import { useAsync } from '../../hooks/useAsync.js';
 import { getMaterial } from '../../services/materialService.js';
 import { explain } from '../../services/predictionService.js';
 import { fmt, prettyFormula } from '../../utils/format.js';
+import StructureViewer from '../../components/materials/StructureViewer.jsx';
 
 const PROPERTY_LABELS = {
   formation_energy: 'Formation energy',
@@ -46,6 +47,13 @@ export default function MaterialDetails() {
               </table>
             </>
           )}
+          <p className="small">
+            <a href={`https://scholar.google.com/scholar?q=${encodeURIComponent(`${m.formula} band gap`)}`} target="_blank" rel="noreferrer">
+              Find papers on {prettyFormula(m.formula)}
+            </a>
+          </p>
+          <h2>Crystal structure</h2>
+          <StructureViewer materialId={m.id} />
           <h2>What the model sees</h2>
           <ErrorMessage error={info.error} />
           {info.data && (

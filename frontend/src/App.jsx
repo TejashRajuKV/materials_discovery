@@ -3,6 +3,7 @@ import Layout from './components/layout/Layout.jsx';
 import Candidates from './pages/Candidates/index.jsx';
 import Comparison from './pages/Comparison/index.jsx';
 import Dashboard from './pages/Dashboard/index.jsx';
+import DataQuality from './pages/DataQuality/index.jsx';
 import Discovery from './pages/Discovery/index.jsx';
 import Experiments from './pages/Experiments/index.jsx';
 import MaterialDetails from './pages/MaterialDetails/index.jsx';
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="compare" element={<Comparison />} />
           <Route path="models" element={<Models />} />
           <Route path="experiments" element={<Experiments />} />
+          <Route path="data" element={<DataQuality />} />
           <Route path="*" element={<p>Page not found.</p>} />
         </Route>
       </Routes>

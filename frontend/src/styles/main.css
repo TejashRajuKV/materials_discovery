@@ -53,3 +53,16 @@ ul.plain { list-style: none; padding-left: 0; }
 .chart { width: 100%; max-width: 560px; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
 .chart .bar { fill: var(--accent); } .chart .axis { stroke: var(--border); } .chart .tick { fill: var(--muted); font-size: 10px; }
 .chart .dot { fill: var(--muted); opacity: .6; cursor: pointer; } .chart .dot-front { fill: var(--good); opacity: 1; }
+
+/* Element picker */
+.element-picker { margin: 0.5rem 0 1rem; }
+.element-grid { display: grid; grid-template-columns: repeat(18, minmax(0, 1fr)); gap: 2px; margin-bottom: 4px; }
+.element-grid-f { grid-template-columns: repeat(14, minmax(0, 1fr)); }
+.element, .element-empty { font-size: 0.7rem; padding: 2px 0; min-width: 0; text-align: center; border-radius: 3px; }
+.element { border: 1px solid #8884; background: transparent; cursor: pointer; color: inherit; }
+.element-include { background: #2e7d3233; border-color: #2e7d32; }
+.element-exclude { background: #c6282833; border-color: #c62828; text-decoration: line-through; }
+.element-empty { visibility: hidden; }
+@media (max-width: 640px) {
+  .element-grid, .element-grid-f { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+}
