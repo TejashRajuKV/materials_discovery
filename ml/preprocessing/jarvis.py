@@ -12,7 +12,7 @@ from ml.config import (JARVIS_BANDGAP_METHOD, JARVIS_MATERIALS_FILE, JARVIS_RAW_
 
 def build_stability_table(materials_path=JARVIS_MATERIALS_FILE):
     """One row per formula, describing its most stable polymorph (lowest `ehull`, eV/atom):
-    ehull, dimensionality, space group, and how many JARVIS entries share the formula.
+    jid, ehull, dimensionality, space group, and how many JARVIS entries share the formula.
     Entries without an `ehull` value are skipped; formulas that cannot be parsed are dropped."""
     from ml.preprocessing.cleaning import canonical_formula
 
@@ -27,7 +27,7 @@ def build_stability_table(materials_path=JARVIS_MATERIALS_FILE):
     m = m.dropna(subset=["formula"])
     counts = m.groupby("formula")["jid"].count().rename("n_entries")
     most_stable = m.sort_values(["ehull", "jid"]).drop_duplicates("formula", keep="first").set_index("formula")
-    out = most_stable[["ehull", "dimensionality", "spg_number", "spg_symbol"]].join(counts).reset_index()
+    out = most_stable[["jid", "ehull", "dimensionality", "spg_number", "spg_symbol"]].join(counts).reset_index()
     return out.sort_values("formula").reset_index(drop=True)
 
 

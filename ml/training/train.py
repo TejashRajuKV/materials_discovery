@@ -30,7 +30,7 @@ CONFORMAL_LEVEL = 0.9  # target coverage of the prediction intervals
 
 
 def baseline_models(rf_params=None):
-    rf_params = rf_params or {"n_estimators": 300, "min_samples_leaf": 1, "max_features": 0.5}
+    rf_params = rf_params or {"n_estimators": 300, "min_samples_leaf": 5, "max_features": 0.5}
     return {
         "mean_baseline": DummyRegressor(strategy="mean"),
         "ridge": make_pipeline(StandardScaler(), Ridge(alpha=1.0)),
