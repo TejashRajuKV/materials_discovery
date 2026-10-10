@@ -7,16 +7,17 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.dummy import DummyRegressor
-from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Ridge
 from sklearn.neighbors import NearestNeighbors
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from ml.config import (DATA_PROCESSED, MODELS_SAVED, PROCESSED_FILE, RANDOM_SEED, TARGET,
+from ml.config import (DATA_PROCESSED, MODELS_SAVED, TRAINING_FILE, RANDOM_SEED, TARGET,
                        TARGET_UNIT)
 from ml.evaluation.error_analysis import error_analysis
 from ml.evaluation.metrics import regression_metrics
+from ml.models.hurdle import HurdleRegressor
 from ml.prediction.uncertainty import forest_prediction_std
 from ml.representation.composition_features import feature_names
 from ml.representation.material_representation import chemical_system, featurize_many
@@ -25,6 +26,7 @@ from ml.training.hyperparameter_tuning import tune_random_forest
 
 BUNDLE_NAME = "bundle.joblib"
 METADATA_NAME = "metadata.json"
+CONFORMAL_LEVEL = 0.9  # target coverage of the prediction intervals
 
 
 def baseline_models(rf_params=None):
@@ -34,14 +36,28 @@ def baseline_models(rf_params=None):
         "ridge": make_pipeline(StandardScaler(), Ridge(alpha=1.0)),
         "random_forest": RandomForestRegressor(random_state=RANDOM_SEED, n_jobs=-1, **rf_params),
         "gradient_boosting": GradientBoostingRegressor(random_state=RANDOM_SEED),
+        # Zero-inflated target: classify metal vs non-metal, then regress the non-metal gap.
+        "hurdle_rf": HurdleRegressor(
+            classifier=RandomForestClassifier(random_state=RANDOM_SEED, n_jobs=-1, **rf_params),
+            regressor=RandomForestRegressor(random_state=RANDOM_SEED, n_jobs=-1, **rf_params),
+        ),
     }
+
+
+def conformal_half_width(y_true, y_pred, level=CONFORMAL_LEVEL):
+    """Finite-sample split-conformal quantile of absolute residuals, so that a new point falls inside
+    y_pred +/- half_width with probability at least `level` (exchangeable data)."""
+    residuals = np.abs(np.asarray(y_true, float) - np.asarray(y_pred, float))
+    n = len(residuals)
+    q = min(1.0, np.ceil((n + 1) * level) / n)
+    return float(np.quantile(residuals, q, method="higher"))
 
 
 def _file_sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
-def train(tune=False, processed_file=PROCESSED_FILE, out_dir=None):
+def train(tune=False, processed_file=TRAINING_FILE, out_dir=None):
     data_path = DATA_PROCESSED / processed_file
     df = pd.read_csv(data_path)
     formulas = df["formula"].tolist()
@@ -58,8 +74,9 @@ def train(tune=False, processed_file=PROCESSED_FILE, out_dir=None):
         rf_params, _ = tune_random_forest(X_tr, y_tr, g_tr)
 
     results = {}
+    oof = {}  # out-of-fold predictions on the training split, used to calibrate intervals
     for name, model in baseline_models(rf_params).items():
-        cv_metrics, _ = grouped_cv_scores(model, X_tr, y_tr, g_tr)
+        cv_metrics, oof[name] = grouped_cv_scores(model, X_tr, y_tr, g_tr)
         model.fit(X_tr, y_tr)
         results[name] = {
             "cv": cv_metrics,
@@ -74,6 +91,11 @@ def train(tune=False, processed_file=PROCESSED_FILE, out_dir=None):
 
     best_test_pred = best_model.predict(X_te)
     analysis = error_analysis([formulas[i] for i in test_idx], y_te, best_test_pred)
+
+    # Split-conformal half-width from the selected model's out-of-fold residuals on the training split.
+    # The test split is only used afterwards, to check coverage.
+    half_width = conformal_half_width(y_tr, oof[best_name], CONFORMAL_LEVEL)
+    test_coverage = float(np.mean(np.abs(y_te - best_test_pred) <= half_width))
 
     # Uncertainty bands: tree-spread terciles on the held-out set.
     test_std = forest_prediction_std(rf, X_te)
@@ -103,6 +125,13 @@ def train(tune=False, processed_file=PROCESSED_FILE, out_dir=None):
         "results": results,
         "error_analysis": analysis,
         "uncertainty": {"std_thresholds": thresholds, "std_vs_abs_error_corr": corr},
+        "conformal": {
+            "level": CONFORMAL_LEVEL,
+            "half_width_eV": round(half_width, 4),
+            "calibration": "out-of-fold residuals of the selected model on the training split",
+            "test_coverage": round(test_coverage, 4),
+            "test_interval_width_eV": round(2 * half_width, 4),
+        },
         "feature_importance": dict(sorted(
             zip(feature_names(), map(float, rf.feature_importances_)), key=lambda kv: -kv[1])[:15]),
         "trained_at": datetime.now(timezone.utc).isoformat(),

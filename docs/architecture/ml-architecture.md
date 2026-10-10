@@ -13,5 +13,5 @@
 | `explainability/` | global importances; per-prediction top features + nearest known materials |
 | `experiments/` | named experiment runs written to `experiments/<id>/` |
 
-CLI: `python ml/main.py {bootstrap|generate-data|preprocess|train [--tune]|export|predict|discover|explain}`.
+CLI: `python ml/main.py {bootstrap|preprocess [--dataset jarvis|synthetic]|generate-data|train [--tune]|export|predict|discover|explain}`. Default data is JARVIS dft_3d (OptB88vdW band gap).
 Run as `python ml/main.py` or `python -m ml.main` from the repo root.

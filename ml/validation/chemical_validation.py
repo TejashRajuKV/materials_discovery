@@ -1,4 +1,5 @@
 """Chemical plausibility checks on a composition."""
+from ml.discovery.charge_balance import charge_state
 from ml.representation.material_representation import InvalidMaterialError, parse_formula
 
 NOBLE_GASES = {"He", "Ne", "Ar", "Kr", "Xe", "Rn"}
@@ -21,14 +22,13 @@ def validate_composition(formula):
     checks.append({"name": "no_radioactive_heavy_elements", "ok": not heavy, "detail": ", ".join(heavy) or "none"})
 
     try:
-        guesses = comp.oxi_state_guesses()
+        balanced, example = charge_state(comp)
     except Exception:
-        guesses = []
-    balanced = bool(guesses)
+        balanced, example = False, ""
     checks.append({
         "name": "charge_balanced",
         "ok": balanced,
-        "detail": ", ".join(f"{k}{v:+g}" for k, v in guesses[0].items()) if balanced else "no charge-neutral oxidation-state assignment",
+        "detail": example if balanced else "no charge-neutral oxidation-state assignment",
     })
 
     hard_fail = (not checks[1]["ok"]) or (not checks[2]["ok"])

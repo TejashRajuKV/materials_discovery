@@ -1,0 +1,13 @@
+{
+  "generated_at": "2026-10-01T18:56:31.958908+00:00",
+  "source_file": "dft_3d.json",
+  "records_in": 93902,
+  "records_written": 93902,
+  "targets": {
+    "OptB88vdW": 93902,
+    "TBmBJ": 21559
+  },
+  "materials_csv": "ml/data/processed/materials.csv",
+  "structures_dir": "ml/data/processed/structures",
+  "note": "CFID features and train/validation/test splits not yet generated."
+}

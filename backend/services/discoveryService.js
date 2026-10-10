@@ -7,6 +7,7 @@ const candidateView = (row) => ({
   ...row,
   validation: parseJson(row.validation),
   explanation: parseJson(row.explanation),
+  properties: parseJson(row.properties),
 });
 
 /** Create a job and run the ML pipeline in the background. Returns the job immediately. */
@@ -26,14 +27,15 @@ export function startJob(db, ml, spec, options = {}) {
 
 function saveResult(db, id, result) {
   const insert = db.prepare(`INSERT INTO candidates
-    (job_id, formula, origin, rank, pareto_rank, score, prediction, uncertainty, confidence, validation, explanation)
-    VALUES (@job_id, @formula, @origin, @rank, @pareto_rank, @score, @prediction, @uncertainty, @confidence, @validation, @explanation)`);
+    (job_id, formula, origin, rank, pareto_rank, score, prediction, uncertainty, confidence, validation, explanation, properties)
+    VALUES (@job_id, @formula, @origin, @rank, @pareto_rank, @score, @prediction, @uncertainty, @confidence, @validation, @explanation, @properties)`);
   db.transaction(() => {
     for (const c of [...result.known_matches, ...result.novel_candidates]) {
       insert.run({
         job_id: id, formula: c.formula, origin: c.origin, rank: c.rank, pareto_rank: c.pareto_rank,
         score: c.score, prediction: c.prediction, uncertainty: c.uncertainty, confidence: c.confidence,
         validation: JSON.stringify(c.validation), explanation: c.explanation ? JSON.stringify(c.explanation) : null,
+        properties: c.properties ? JSON.stringify(c.properties) : null,
       });
     }
     db.prepare(`UPDATE discovery_jobs SET status = 'completed', stats = ?, spec = ?, model_version = ?,

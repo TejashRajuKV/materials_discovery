@@ -7,5 +7,6 @@ export default (db, ml) => {
   r.post('/', validateDiscoveryBody, c.create(db, ml));
   r.get('/', c.list(db));
   r.get('/:id', c.get(db));
+  r.get('/:id/export.csv', c.exportCsv(db));
   return r;
 };

@@ -3,6 +3,22 @@ import { config } from '../config/config.js';
 import { HttpError } from '../utils/helpers.js';
 
 /**
+ * The ML engine can be reached two ways, with the same results and errors:
+ *   - spawn: `python ml/main.py <cmd>` per call (default; loads the models on every call)
+ *   - service: the resident server `python ml/service.py`, when ML_SERVICE_URL is set (loads them once)
+ */
+
+/** Turn an ML result document into the value, or throw the matching HTTP error. */
+function unwrap(doc) {
+  if (doc.error) {
+    const status = doc.error === 'ModelNotTrainedError' ? 503
+      : ['InvalidSpecError', 'InvalidMaterialError'].includes(doc.error) ? 400 : 500;
+    throw new HttpError(status, doc.message || doc.error);
+  }
+  return doc;
+}
+
+/**
  * Run one ML-engine command (`python ml/main.py <args>`), optionally feeding JSON on stdin.
  * Resolves to the parsed JSON document the CLI prints on stdout.
  */
@@ -30,20 +46,47 @@ export function runMl(args, input) {
       } catch {
         return reject(new HttpError(502, 'ML engine returned invalid output', stderr.slice(-500)));
       }
-      if (doc.error) {
-        const status = doc.error === 'ModelNotTrainedError' ? 503
-          : ['InvalidSpecError', 'InvalidMaterialError'].includes(doc.error) ? 400 : 500;
-        return reject(new HttpError(status, doc.message || doc.error));
+      try {
+        resolve(unwrap(doc));
+      } catch (err) {
+        reject(err);
       }
-      resolve(doc);
     });
     if (input !== undefined) child.stdin.write(JSON.stringify(input));
     child.stdin.end();
   });
 }
 
+/** POST to the resident ML service and return its result document. */
+async function callService(endpoint, body) {
+  let res;
+  try {
+    res = await fetch(`${config.mlServiceUrl}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body ?? {}),
+      signal: AbortSignal.timeout(config.mlTimeoutMs),
+    });
+  } catch (err) {
+    if (err.name === 'TimeoutError') throw new HttpError(504, `ML service timed out after ${config.mlTimeoutMs} ms`);
+    throw new HttpError(503, `ML service unreachable at ${config.mlServiceUrl}: ${err.message}`);
+  }
+  try {
+    return unwrap(await res.json());
+  } catch (err) {
+    if (err instanceof HttpError) throw err;
+    throw new HttpError(502, 'ML service returned invalid output');
+  }
+}
+
 export const defaultMl = {
-  predict: (formulas) => runMl(['predict', '--stdin'], { formulas }),
-  discover: (payload) => runMl(['discover', '--stdin'], payload),
-  explain: (formula) => runMl(['explain', '--formula', formula]),
+  predict: (formulas, property = 'band_gap') => (config.mlServiceUrl
+    ? callService('/predict', { formulas, property })
+    : runMl(['predict', '--stdin'], { formulas, property })),
+  discover: (payload) => (config.mlServiceUrl
+    ? callService('/discover', payload)
+    : runMl(['discover', '--stdin'], payload)),
+  explain: (formula) => (config.mlServiceUrl
+    ? callService('/explain', { formula })
+    : runMl(['explain', '--formula', formula])),
 };

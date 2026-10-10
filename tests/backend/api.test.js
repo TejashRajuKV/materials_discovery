@@ -80,7 +80,8 @@ describe('predict', () => {
     assert.equal(hist.body.length, 1);
   });
   it('rejects malformed input', async () => {
-    for (const bad of [{}, { formulas: [] }, { formulas: 'MgO' }, { formulas: ['Mg;DROP'] }, { formulas: [1] }]) {
+    for (const bad of [{}, { formulas: [] }, { formulas: 'MgO' }, { formulas: ['Mg;DROP'] }, { formulas: [1] },
+      { formulas: ['MgO'], property: 'hardness' }]) {
       assert.equal((await post('/api/predict', bad)).status, 400, JSON.stringify(bad));
     }
   });
@@ -104,7 +105,12 @@ describe('discovery', () => {
   });
   it('rejects invalid specs before starting a job', async () => {
     const before = calls.discover;
-    for (const spec of [{}, { band_gap: { min: 3, max: 1 } }, { band_gap: { min: 'x' } }, { exclude_elements: ['fe'] }]) {
+    for (const spec of [
+      {}, { band_gap: { min: 3, max: 1 } }, { band_gap: { min: 'x' } }, { exclude_elements: ['fe'] },
+      { max_ehull: -0.1 }, { dimensionality: ['4D-bulk'] }, { crystal_system: ['square'] },
+      { formation_energy: { min: 1, max: 0 } }, { bulk_modulus: { min: 'stiff' } },
+      { band_gap: { min: 1, max: 2 }, weights: { gap_distance: -1 } },
+    ]) {
       assert.equal((await post('/api/discovery', { spec })).status, 400, JSON.stringify(spec));
     }
     assert.equal(calls.discover, before);

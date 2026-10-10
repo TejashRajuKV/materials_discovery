@@ -11,6 +11,21 @@ CREATE TABLE IF NOT EXISTS materials (
 );
 CREATE INDEX IF NOT EXISTS idx_materials_band_gap ON materials (band_gap);
 
+-- Properties other than band gap, one row per (formula, property). `recorded` is the JARVIS value of
+-- the most stable entry (NULL if none); `predicted` and the interval come from the property's model.
+CREATE TABLE IF NOT EXISTS material_properties (
+  formula        TEXT NOT NULL,
+  property       TEXT NOT NULL,
+  unit           TEXT NOT NULL,
+  recorded       REAL,
+  predicted      REAL,
+  uncertainty    REAL,
+  interval_low   REAL,
+  interval_high  REAL,
+  model_version  TEXT,
+  PRIMARY KEY (formula, property)
+);
+
 CREATE TABLE IF NOT EXISTS models (
   id               INTEGER PRIMARY KEY AUTOINCREMENT,
   name             TEXT NOT NULL,
@@ -65,6 +80,7 @@ CREATE TABLE IF NOT EXISTS candidates (
   uncertainty  REAL NOT NULL,
   confidence   TEXT,
   validation   TEXT,                -- JSON
-  explanation  TEXT                 -- JSON, top candidates only
+  explanation  TEXT,                -- JSON, top candidates only
+  properties   TEXT                 -- JSON: {property: {value, uncertainty, source, interval}}
 );
 CREATE INDEX IF NOT EXISTS idx_candidates_job ON candidates (job_id, origin, rank);

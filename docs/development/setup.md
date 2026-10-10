@@ -5,7 +5,7 @@ Requirements: Node ≥ 18 (developed on 22), Python ≥ 3.10.
 ```bash
 npm install
 pip install -r requirements.txt
-npm run setup          # synthetic data → preprocess → train → export → seed SQLite
+npm run setup          # JARVIS preprocess → train → export → seed SQLite
 npm run dev:backend    # :3000
 npm run dev:frontend   # :5173 (proxies /api)
 npm test               # backend (node:test) + frontend (vitest) + ML (pytest)

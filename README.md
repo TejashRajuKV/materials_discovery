@@ -32,7 +32,7 @@ docs/       Research, architecture, dataset, experiment, and dev docs
 ```bash
 npm install
 pip install -r requirements.txt
-npm run setup          # synthetic data -> preprocess -> train -> export -> seed SQLite
+npm run setup          # JARVIS preprocess -> train -> export -> seed SQLite (needs ml/data/processed/)
 npm run dev:backend    # API on :3000
 npm run dev:frontend   # UI on :5173
 npm test               # backend + frontend + ML tests
@@ -48,9 +48,10 @@ materials plus substitution-generated compositions → predicts band gap with un
 → ranks the trade-off between hitting the target and model certainty (Pareto front) → explains the
 top candidates.
 
-> **Status: demo data.** No real dataset could be downloaded where this was built, so the model is
-> trained on a *synthetic* band-gap set and the UI says so. Metrics and candidates illustrate the
-> workflow only — see `docs/datasets/dataset-selection.md` for how to swap in real data.
+> **Data: JARVIS dft_3d.** The model is trained on JARVIS-DFT band gaps (OptB88vdW, ~94k materials).
+> Prepare the data first: `python scripts/data/download_jarvis.py dft_3d`, then
+> `python scripts/data/to_csv.py dft_3d.json`. The synthetic placeholder is still available with
+> `python ml/main.py preprocess --dataset synthetic`.
 
 ## Documentation
 

@@ -18,7 +18,7 @@ def constraints_layer(constraint_result):
 def validate_candidate(prediction, constraint_result):
     layers = [
         validate_composition(prediction["formula"]),
-        validate_stability(prediction["formula"]),
+        validate_stability(prediction),
         uncertainty_layer(prediction),
         constraints_layer(constraint_result),
     ]

@@ -39,7 +39,16 @@ def predict_many(formulas, bundle=None):
         X = np.vstack(rows)
         values = np.clip(bundle["model"].predict(X), 0, None)
         stds = forest_prediction_std(bundle["forest"], X)
-        for (i, reduced), value, std in zip(index, values, stds):
+        conformal = bundle["metadata"].get("conformal")
+        # Hurdle models also report P(non-metal). Their zero predictions come from this classifier,
+        # which the regressor's tree spread does not describe, so an uncertain classifier lowers confidence.
+        model = bundle["model"]
+        p_nonmetal = (model.predict_nonmetal_probability(X) if hasattr(model, "predict_nonmetal_probability")
+                      else [None] * len(values))
+        for (i, reduced), value, std, p in zip(index, values, stds, p_nonmetal):
+            confidence = confidence_label(std, thresholds)
+            if p is not None and 0.3 < p < 0.7:
+                confidence = "low"
             results[i] = {
                 "input": formulas[i],
                 "formula": reduced,
@@ -47,8 +56,15 @@ def predict_many(formulas, bundle=None):
                 "unit": TARGET_UNIT,
                 "prediction": round(float(value), 4),
                 "uncertainty": round(float(std), 4),
-                "confidence": confidence_label(std, thresholds),
+                "confidence": confidence,
                 "model": bundle["metadata"]["best_model"],
                 "model_version": bundle["metadata"]["version"],
             }
+            if p is not None:
+                results[i]["nonmetal_probability"] = round(float(p), 4)
+            if conformal:
+                half = conformal["half_width_eV"]
+                results[i]["interval_low"] = round(max(0.0, float(value) - half), 4)
+                results[i]["interval_high"] = round(float(value) + half, 4)
+                results[i]["interval_level"] = conformal["level"]
     return results
