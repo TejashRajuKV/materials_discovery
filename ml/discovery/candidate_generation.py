@@ -30,8 +30,10 @@ def _partners():
     return partners
 
 
-def generate_by_substitution(known_formulas, limit=2000, seed=RANDOM_SEED):
-    """Return novel reduced formulas (not in known_formulas), at most `limit`."""
+def generate_by_substitution(known_formulas, limit=2000, seed=RANDOM_SEED, charge_balanced=True):
+    """Return novel reduced formulas (not in known_formulas), at most `limit`. With charge_balanced,
+    anion-containing compositions that cannot balance their charges are dropped."""
+    from ml.discovery.charge_balance import is_charge_balanceable, save_cache
     rng = random.Random(seed)
     known = set(known_formulas)
     partners = _partners()
@@ -46,10 +48,14 @@ def generate_by_substitution(known_formulas, limit=2000, seed=RANDOM_SEED):
                 if len(amounts) < len(comp.elements):
                     continue  # substitution collapsed two elements
                 candidate = Composition(amounts).reduced_formula
-                if candidate not in known:
-                    out.add(candidate)
-        if len(out) >= limit * 3:
+                if candidate in known or candidate in out:
+                    continue
+                if charge_balanced and not is_charge_balanceable(candidate):
+                    continue
+                out.add(candidate)
+        if len(out) >= limit:
             break
+    save_cache()
     result = sorted(out)
     rng.shuffle(result)
     return result[:limit]

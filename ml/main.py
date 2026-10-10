@@ -93,6 +93,8 @@ def main(argv=None):
     e.add_argument("--formula", required=True)
     args = parser.parse_args(argv)
 
+    from ml import commands
+
     try:
         if args.command == "generate-data":
             from scripts.data.generate_synthetic_dataset import main as gen
@@ -120,22 +122,11 @@ def main(argv=None):
             payload = _read_stdin() if args.stdin else {}
             formulas = payload.get("formulas", []) if args.stdin else args.formulas
             prop = payload.get("property", args.property) if args.stdin else args.property
-            if prop == "band_gap":
-                from ml.prediction.predict import predict_many
-                result = {"predictions": predict_many(formulas)}
-            else:
-                from ml.training.property_models import predict_property_many
-                result = {"predictions": predict_property_many(prop, formulas)}
+            result = commands.predict(formulas, prop)
         elif args.command == "discover":
-            from ml.discovery.candidate_search import run_discovery
-            payload = _read_stdin()
-            result = run_discovery(payload.get("spec", payload), generate=payload.get("generate", True),
-                                   include_known=payload.get("include_known", True),
-                                   top_k=int(payload.get("top_k", 25)))
+            result = commands.discover(_read_stdin())
         elif args.command == "explain":
-            from ml.explainability.prediction_explanation import explain
-            from ml.prediction.predict import load_bundle
-            result = explain(args.formula, load_bundle())
+            result = commands.explain(args.formula)
     except Exception as exc:  # surface a structured error to the caller
         print(json.dumps({"error": type(exc).__name__, "message": str(exc)}))
         return 1

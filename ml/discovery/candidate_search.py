@@ -4,6 +4,7 @@ import pandas as pd
 from ml.config import DATA_PROCESSED, TARGET, TARGET_UNIT, TRAINING_FILE
 from ml.discovery.candidate_filter import filter_candidates
 from ml.discovery.candidate_generation import generate_by_substitution
+from ml.discovery.charge_balance import save_cache
 from ml.discovery.known_lookup import load_known_lookup, load_property_records
 from ml.explainability.prediction_explanation import explain
 from ml.optimization.constraints import RANGE_PROPERTIES, normalize_spec
@@ -71,7 +72,7 @@ def run_discovery(spec, generate=True, include_known=True, max_generated=1500, t
     # predictions would be unfair, so each origin is ranked on its own.
     result = {}
     for origin, key in (("known", "known_matches"), ("generated", "novel_candidates")):
-        ranked = rank_candidates([c for c in kept if c["origin"] == origin], spec)
+        ranked = rank_candidates([c for c in kept if c["origin"] == origin], spec, weights=spec.get("weights"))
         top = ranked[:top_k]
         for c in top[:explain_top]:
             c["explanation"] = explain(c["formula"], bundle)
@@ -80,4 +81,5 @@ def run_discovery(spec, generate=True, include_known=True, max_generated=1500, t
         stats[f"{origin}_pareto_front_size"] = sum(1 for c in ranked if c["pareto_rank"] == 0)
 
     stats.update({"known_considered": int(len(known_df)) if include_known else 0, "generated_considered": n_generated})
+    save_cache()
     return {"spec": spec, "stats": stats, "model_version": bundle["metadata"]["version"], **result}

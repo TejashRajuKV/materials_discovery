@@ -13,6 +13,7 @@ spec = {
 }
 """
 from ml.config import TARGET
+from ml.optimization.objectives import OBJECTIVE_NAMES as OBJECTIVE_KEYS
 from ml.representation.crystal_system import CRYSTAL_SYSTEMS
 from ml.representation.material_representation import parse_formula
 
@@ -51,6 +52,7 @@ def normalize_spec(spec):
     spec["max_ehull"] = _nonneg_float(spec, "max_ehull")
     for prop in RANGE_PROPERTIES:
         spec[prop] = _range(spec, prop)
+    spec["weights"] = _weights(spec.get("weights"))
     spec["dimensionality"] = _choices(spec, "dimensionality", DIMENSIONALITY_LABELS)
     spec["crystal_system"] = _choices(spec, "crystal_system", CRYSTAL_SYSTEMS)
     return spec
@@ -58,6 +60,25 @@ def normalize_spec(spec):
 
 STRUCTURE_KEYS = ("include_elements", "exclude_elements", "max_elements", "max_ehull", "dimensionality", "crystal_system",
                   *RANGE_PROPERTIES)
+
+
+def _weights(raw):
+    """Ranking weights for the within-front score, normalised to sum to 1. None means the defaults."""
+    if raw in (None, ""):
+        return None
+    if not isinstance(raw, dict):
+        raise InvalidSpecError("weights must be an object such as {\"gap_distance\": 0.7, \"uncertainty\": 0.3}")
+    unknown = set(raw) - set(OBJECTIVE_KEYS)
+    if unknown:
+        raise InvalidSpecError(f"weights: unknown {sorted(unknown)}; expected {list(OBJECTIVE_KEYS)}")
+    try:
+        values = {k: float(raw.get(k, 0)) for k in OBJECTIVE_KEYS}
+    except (TypeError, ValueError) as exc:
+        raise InvalidSpecError("weights must be numbers") from exc
+    if any(v < 0 for v in values.values()) or sum(values.values()) <= 0:
+        raise InvalidSpecError("weights must be non-negative and not all zero")
+    total = sum(values.values())
+    return {k: v / total for k, v in values.items()}
 
 
 def _range(spec, prop):
