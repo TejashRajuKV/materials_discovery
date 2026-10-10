@@ -31,14 +31,17 @@ export default function ElementPicker({ include, exclude, onChange }) {
 
   return (
     <div className="element-picker">
-      <div className="element-grid">
-        {PERIODIC_ROWS.map((cells, r) => cells.map((symbol, c) => cell(symbol, `${r}-${c}`)))}
-      </div>
-      <div className="element-grid element-grid-f">
-        {LANTHANIDES.map((s) => cell(s, `la-${s}`))}
-      </div>
-      <div className="element-grid element-grid-f">
-        {ACTINIDES.map((s) => cell(s, `ac-${s}`))}
+      {/* The table keeps its 18-column layout; on narrow screens this box scrolls sideways instead. */}
+      <div className="element-scroll">
+        <div className="element-grid">
+          {PERIODIC_ROWS.map((cells, r) => cells.map((symbol, c) => cell(symbol, `${r}-${c}`)))}
+        </div>
+        <div className="element-grid element-grid-f">
+          {LANTHANIDES.map((s) => cell(s, `la-${s}`))}
+        </div>
+        <div className="element-grid element-grid-f">
+          {ACTINIDES.map((s) => cell(s, `ac-${s}`))}
+        </div>
       </div>
       <p className="muted small">Click an element to require it (green), click again to exclude it (red), again to clear.</p>
     </div>
