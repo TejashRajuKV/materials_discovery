@@ -5,10 +5,13 @@ import { config } from './config/config.js';
 import { openDb } from './database/connection.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import candidateRoutes from './routes/candidateRoutes.js';
+import dataRoutes from './routes/dataRoutes.js';
+import searchRoutes from './routes/searchRoutes.js';
 import discoveryRoutes from './routes/discoveryRoutes.js';
 import experimentRoutes from './routes/experimentRoutes.js';
 import materialRoutes from './routes/materialRoutes.js';
 import predictionRoutes from './routes/predictionRoutes.js';
+import { failStaleJobs } from './services/discoveryService.js';
 import { defaultMl } from './services/pythonService.js';
 import { logger } from './utils/logger.js';
 
@@ -23,6 +26,8 @@ export function createApp({ db, ml = defaultMl }) {
   app.use('/api/predict', predictionRoutes(db, ml));
   app.use('/api/discovery', discoveryRoutes(db, ml));
   app.use('/api/candidates', candidateRoutes(db));
+  app.use('/api/data', dataRoutes());
+  app.use('/api/searches', searchRoutes(db, ml));
   app.use('/api', experimentRoutes(db));
 
   app.use(notFound);
@@ -32,6 +37,8 @@ export function createApp({ db, ml = defaultMl }) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const db = openDb(config.dbPath);
+  const stale = failStaleJobs(db);
+  if (stale) logger.warn(`marked ${stale} discovery job(s) left running by a previous server as failed`);
   if (!db.prepare('SELECT 1 FROM materials LIMIT 1').get()) {
     logger.warn('materials table is empty — run `npm run ml:bootstrap && npm run db:seed`');
   }

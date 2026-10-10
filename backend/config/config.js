@@ -13,6 +13,9 @@ export const config = {
   mlServiceUrl: process.env.ML_SERVICE_URL || null,
   mlEntry: path.join(root, 'ml', 'main.py'),
   exportPath: path.join(root, 'ml', 'data', 'processed', 'export.json'),
+  preprocessReportPath: path.join(root, 'ml', 'data', 'processed', 'preprocessing_report.json'),
+  stabilityPath: path.join(root, 'ml', 'data', 'processed', 'stability.csv'),
+  structuresDir: path.join(root, 'ml', 'data', 'processed', 'structures'),
   mlTimeoutMs: Number(process.env.ML_TIMEOUT_MS) || 600_000, // discovery loads the ~1 GB model bundle: ~150 s measured
   maxFormulasPerRequest: 200,
 };

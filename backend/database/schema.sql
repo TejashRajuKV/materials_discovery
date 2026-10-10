@@ -68,6 +68,14 @@ CREATE TABLE IF NOT EXISTS discovery_jobs (
   completed_at  TEXT
 );
 
+-- Named requirement sets that can be re-run later. `spec` is the validated JSON spec.
+CREATE TABLE IF NOT EXISTS saved_searches (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  name        TEXT NOT NULL,
+  spec        TEXT NOT NULL,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS candidates (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   job_id       INTEGER NOT NULL REFERENCES discovery_jobs(id) ON DELETE CASCADE,

@@ -6,5 +6,6 @@ export default (db) => {
   r.get('/', c.list(db));
   r.get('/stats', c.stats(db));
   r.get('/:id', c.get(db));
+  r.get('/:id/structure', c.structure(db));
   return r;
 };

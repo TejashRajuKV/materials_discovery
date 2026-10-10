@@ -26,6 +26,13 @@ export function validatePredictBody(req, res, next) {
 const DIMENSIONALITY = ['3D-bulk', '2D-bulk', '1D-bulk', '0D-bulk', 'intercalated ion', 'intercalated molecule'];
 const CRYSTAL_SYSTEMS = ['triclinic', 'monoclinic', 'orthorhombic', 'tetragonal', 'trigonal', 'hexagonal', 'cubic'];
 
+/** Error message for an invalid discovery spec, or null when it is valid. */
+export function specError(spec) {
+  let error = null;
+  validateDiscoveryBody({ body: { spec } }, null, (err) => { error = err ?? null; });
+  return error ? error.message : null;
+}
+
 export function validateDiscoveryBody(req, res, next) {
   const { spec } = req.body ?? {};
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) {

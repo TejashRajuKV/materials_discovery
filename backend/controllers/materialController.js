@@ -20,3 +20,4 @@ export const get = (db) => (req, res) => {
 };
 
 export const stats = (db) => (req, res) => res.json(service.materialStats(db));
+export const structure = (db) => (req, res) => res.json(service.getStructure(db, toInt(req.params.id, NaN)));

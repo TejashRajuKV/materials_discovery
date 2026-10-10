@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import { createApp } from '../../backend/server.js';
 import { openDb } from '../../backend/database/connection.js';
+import { failStaleJobs } from '../../backend/services/discoveryService.js';
 
 const calls = { discover: 0 };
 const fakeMl = {
@@ -137,3 +138,43 @@ describe('misc', () => {
     assert.equal(r.status, 400);
   });
 });
+
+describe('job recovery', () => {
+  it('marks jobs left running by a stopped server as failed, and leaves finished ones alone', () => {
+    const db = openDb(':memory:');
+    db.prepare("INSERT INTO discovery_jobs (spec, status) VALUES ('{}', 'running')").run();
+    db.prepare("INSERT INTO discovery_jobs (spec, status) VALUES ('{}', 'completed')").run();
+    assert.equal(failStaleJobs(db), 1);
+    const rows = db.prepare('SELECT status, error FROM discovery_jobs ORDER BY id').all();
+    assert.equal(rows[0].status, 'failed');
+    assert.match(rows[0].error, /server stopped/);
+    assert.equal(rows[1].status, 'completed');
+  });
+});
+
+describe('saved searches', () => {
+  it('saves a valid spec, rejects an invalid one, runs it as a job, and deletes it', async () => {
+    const bad = await post('/api/searches', { name: 'bad', spec: { band_gap: { min: 3, max: 1 } } });
+    assert.equal(bad.status, 400);
+    const noName = await post('/api/searches', { name: '  ', spec: { band_gap: { min: 1, max: 2 } } });
+    assert.equal(noName.status, 400);
+
+    const created = await post('/api/searches', { name: 'wide gap', spec: { band_gap: { min: 2, max: 3 } } });
+    assert.equal(created.status, 201);
+    assert.deepEqual(created.body.spec, { band_gap: { min: 2, max: 3 } });
+
+    const listed = await json('/api/searches');
+    assert.ok(listed.body.some((x) => x.id === created.body.id && x.name === 'wide gap'));
+
+    const before = calls.discover;
+    const run = await post(`/api/searches/${created.body.id}/run`, {});
+    assert.equal(run.status, 202);
+    assert.equal(calls.discover, before + 1);
+    const job = await waitForJob(run.body.id);
+    assert.equal(job.status, 'completed');
+
+    assert.equal((await fetch(`${base}/api/searches/${created.body.id}`, { method: 'DELETE' })).status, 204);
+    assert.equal((await post(`/api/searches/${created.body.id}/run`, {})).status, 404);
+  });
+});
+

@@ -44,6 +44,15 @@ function saveResult(db, id, result) {
   })();
 }
 
+/**
+ * Jobs still marked running belong to a server that has stopped, since the worker lives in that process.
+ * Mark them failed so the UI does not poll them forever. Returns how many were fixed.
+ */
+export function failStaleJobs(db) {
+  return db.prepare(`UPDATE discovery_jobs SET status = 'failed', error = 'server stopped before the job finished',
+    completed_at = datetime('now') WHERE status = 'running'`).run().changes;
+}
+
 export function getJob(db, id) {
   return jobView(db.prepare('SELECT * FROM discovery_jobs WHERE id = ?').get(id));
 }

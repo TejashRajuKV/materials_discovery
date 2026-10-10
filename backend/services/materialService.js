@@ -1,4 +1,34 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { config } from '../config/config.js';
 import { HttpError } from '../utils/helpers.js';
+
+// formula -> JARVIS jid of its most stable entry, read once from the stability table.
+let jidByFormula = null;
+function loadJids() {
+  if (jidByFormula) return jidByFormula;
+  jidByFormula = new Map();
+  if (!fs.existsSync(config.stabilityPath)) return jidByFormula;
+  const [header, ...rows] = fs.readFileSync(config.stabilityPath, 'utf8').trim().split('\n');
+  const cols = header.split(',');
+  const iFormula = cols.indexOf('formula');
+  const iJid = cols.indexOf('jid');
+  for (const line of rows) {
+    const cells = line.split(',');  // formulas and jids contain no commas
+    if (cells[iJid]) jidByFormula.set(cells[iFormula], cells[iJid]);
+  }
+  return jidByFormula;
+}
+
+/** Atomic structure of a material's most stable JARVIS entry (for the viewer). */
+export function getStructure(db, id) {
+  const material = getMaterial(db, id);
+  const jid = loadJids().get(material.formula);
+  if (!jid) throw new HttpError(404, `no crystal structure for ${material.formula}`);
+  const file = path.join(config.structuresDir, `${jid}.json`);
+  if (!fs.existsSync(file)) throw new HttpError(404, `structure file for ${jid} not found`);
+  return { formula: material.formula, ...JSON.parse(fs.readFileSync(file, 'utf8')) };
+}
 
 const SORTS = {
   formula: 'formula ASC',
