@@ -25,7 +25,7 @@ export default function Candidates() {
   const s = job.stats;
   return (
     <>
-      <p><Link to="/discovery">← New discovery</Link></p>
+      <p><Link to="/discovery">← New discovery</Link> · <a href={`/api/discovery/${job.id}/export.csv`} download>Download CSV</a></p>
       <h1>Discovery job #{job.id} <Badge tone="good">completed</Badge></h1>
       <p className="muted">
         Screened {s.known_considered} known + {s.generated_considered} generated compositions; {s.failed_constraints} failed the requirements,

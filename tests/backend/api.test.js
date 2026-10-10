@@ -109,6 +109,7 @@ describe('discovery', () => {
       {}, { band_gap: { min: 3, max: 1 } }, { band_gap: { min: 'x' } }, { exclude_elements: ['fe'] },
       { max_ehull: -0.1 }, { dimensionality: ['4D-bulk'] }, { crystal_system: ['square'] },
       { formation_energy: { min: 1, max: 0 } }, { bulk_modulus: { min: 'stiff' } },
+      { band_gap: { min: 1, max: 2 }, weights: { gap_distance: -1 } },
     ]) {
       assert.equal((await post('/api/discovery', { spec })).status, 400, JSON.stringify(spec));
     }

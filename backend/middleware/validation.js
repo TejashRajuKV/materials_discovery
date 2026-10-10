@@ -53,6 +53,14 @@ export function validateDiscoveryBody(req, res, next) {
     return next(new HttpError(400, `crystal_system must be one of: ${CRYSTAL_SYSTEMS.join(', ')}`));
   }
   const hasStructureRule = listOf(spec.dimensionality).length > 0 || listOf(spec.crystal_system).length > 0;
+  if (spec.weights !== undefined && spec.weights !== null) {
+    const weights = spec.weights;
+    if (typeof weights !== 'object' || Array.isArray(weights)
+      || Object.values(weights).some((v) => !Number.isFinite(Number(v)) || Number(v) < 0)
+      || Object.values(weights).reduce((sum, v) => sum + Number(v), 0) <= 0) {
+      return next(new HttpError(400, 'weights must be an object of non-negative numbers, not all zero'));
+    }
+  }
   let hasRangeRule = false;
   for (const prop of ['formation_energy', 'bulk_modulus']) {
     const bounds = spec[prop];

@@ -40,13 +40,15 @@ Reasons for the deferred items are given inline.
 
 | Item | Effort | Notes |
 | --- | --- | --- |
-| Charge-balanced substitution | M | Only propose compositions that pass a charge-neutrality check, to cut invalid candidates. |
+| Charge-balanced substitution | M | **Done.** Anion-containing candidates must balance their charges; intermetallics are not checked. About 81% of anion candidates pass. Results are cached on disk, since the check takes about 30 ms per composition. |
 | Prototype-based generation | M | Reuse known crystal structures with new elements. Needs the structure descriptors. |
 | Active learning loop | L | Pick the most informative candidates for DFT or experiment, then retrain. Needs a place to record results. |
-| Adjustable Pareto weights | S | Let users change the trade-off in the UI and see the front move. The backend already computes it. |
+| Adjustable Pareto weights | S | **Done** for the within-front score (`weights` in the spec, and in the form). The front itself does not depend on the weights. |
 | Saved searches and re-run alerts | M | Store a spec, re-run it after each model release, and show what changed. |
 
 ## Phase 4 — Data platform
+
+**Status: not started.** Materials Project is downloaded but not used. Each new source needs a provenance file and a loader.
 
 | Item | Effort | Notes |
 | --- | --- | --- |
@@ -56,24 +58,30 @@ Reasons for the deferred items are given inline.
 
 ## Phase 5 — User-facing features
 
+**Status: partly done.** CSV export and the model comparison page (Models) are done. Structure viewer and periodic-table picker are not started.
+
 | Item | Effort | Notes |
 | --- | --- | --- |
 | 3D structure viewer | M | Render each candidate's crystal with 3Dmol.js. Needs the structures already on disk. |
-| Export | S | CSV and JSON for discovery results. PDF report for a single candidate later. |
+| Export | S | **CSV done** for discovery results (`/api/discovery/:id/export.csv`). JSON and a per-candidate PDF are not done. |
 | Model comparison page | S | Read the `models` table and show metrics side by side, plus error plots by gap range. |
 | Periodic-table element picker | S | Replace typing element symbols with a clickable table. |
 
 ## Phase 6 — Operations and multi-user
 
+**Status: partly done.** Resident service, backup script, and the faster Pareto ranking are done. Auth, a job queue, and a smaller band-gap model are not. Auth and hosting need your decisions.
+
 | Item | Effort | Notes |
 | --- | --- | --- |
-| Resident ML service | M | Keep the model loaded instead of spawning Python per request. Fixes the 7 s predict latency and the 1.1 GB reload. Keeps the `pythonService.js` interface. |
-| Smaller model | S | Prune or limit the forest. Changes the model, so it needs a metrics comparison first. |
+| Resident ML service | M | **Done** (`ml/service.py`, opt-in with `ML_SERVICE_URL`). Predict is about 0.5 s warm, against 6–7 s. The 1.2 GB band-gap model is still large in memory. |
+| Smaller model | S | **Not done.** Pruning the band-gap forest changes the model, so it needs a retrain and a metrics comparison. The property models already use smaller forests. |
 | Job queue for discovery | M | Survive restarts and run jobs in parallel. |
 | Auth and per-user history | L | Needed before anything is shared. |
-| Automated database backups | S | Scheduled copies of `database/materials.db`. |
+| Automated database backups | S | **Done as a script** (`scripts/backup-db.js`, with retention). Scheduling it is left to the host. |
 
 ## Phase 7 — Research tooling
+
+**Status: not started.** The Experiments page already lists runs; comparison over time and a versioned benchmark are not done.
 
 | Item | Effort | Notes |
 | --- | --- | --- |

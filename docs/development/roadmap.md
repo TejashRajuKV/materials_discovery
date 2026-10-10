@@ -23,6 +23,12 @@ The per-item plan, with effort and dependencies, is in [feature-plan.md](feature
   Property ranges are discovery constraints; generated candidates get predicted values, so they can pass them.
 - The feature plan lists what is deferred and why: structure descriptors, CFID, the third objective.
 
+## Done in Phase 3–6 (partly)
+- Charge-balanced substitution (cached), adjustable ranking weights, CSV export of results.
+- Resident ML service (opt-in), database backup script, and a vectorised Pareto ranking that cut a large
+  discovery from ~10 min to under a minute.
+- See `docs/development/operations.md`.
+
 ## Next
 1. A third Pareto objective from formation energy or bulk modulus, and density as another property.
 2. Prototype-based generation, which makes structure descriptors useful for screening.

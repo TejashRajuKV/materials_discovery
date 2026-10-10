@@ -5,6 +5,7 @@ const initial = {
   min: '1.0', max: '3.0', target: '2.0', maxUncertainty: '0.5', maxEhull: '', include: '', exclude: '', maxElements: '3',
   dimensionality: '', crystalSystem: '',
   feMin: '', feMax: '', bmMin: '', bmMax: '',
+  wGap: '', wUnc: '',
 };
 
 export default function RequirementsForm({ onSubmit, busy }) {
@@ -24,6 +25,8 @@ export default function RequirementsForm({ onSubmit, busy }) {
       crystal_system: parseList(f.crystalSystem),
       formation_energy: { min: f.feMin, max: f.feMax },
       bulk_modulus: { min: f.bmMin, max: f.bmMax },
+      // Blank means the default ranking weights; otherwise the two weights are normalised by the engine.
+      weights: f.wGap === '' && f.wUnc === '' ? undefined : { gap_distance: f.wGap || 0, uncertainty: f.wUnc || 0 },
     });
   };
 
@@ -82,6 +85,13 @@ export default function RequirementsForm({ onSubmit, busy }) {
             <input value={f.crystalSystem} onChange={set('crystalSystem')} placeholder="e.g. cubic, hexagonal" />
             <small className="muted">known materials only; blank = any</small>
           </label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Ranking weights (optional)</legend>
+        <div className="row">
+          {num('Weight: distance to target', 'wGap', 'how much closeness to the target matters', 'any')}
+          {num('Weight: prediction uncertainty', 'wUnc', 'how much model certainty matters', 'any')}
         </div>
       </fieldset>
       <button type="submit" disabled={busy}>{busy ? 'Starting…' : 'Start discovery'}</button>
