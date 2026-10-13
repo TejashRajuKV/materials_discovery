@@ -82,8 +82,8 @@ are dropped as unphysical. About 41,000 formulas have no bulk modulus in JARVIS,
 
 > The numbers below describe the JARVIS-only model. The current model is trained on the Materials Project
 > formulas this benchmark used as "novel", so the benchmark no longer measures generalisation for it. The
-> held-out experiment in the next section is the evidence for the current model; re-measuring needs a source
-> the model has not seen, such as OQMD.
+> held-out experiment in the next section is one piece of evidence, and the OQMD section after it is the
+> independent check.
 
 `ml/validation/external_benchmark.py` checks the band-gap model against the Materials Project gaps in
 `mp_3d.json` (PBE, a different DFT method from JARVIS's OptB88vdW). Run it with
@@ -129,3 +129,38 @@ JARVIS test split held out as before: its JARVIS MAE is 0.268 eV.
 **Costs.** The 90% interval is wider (half-width 1.28 eV, was 0.92 eV) because its calibration includes the
 noisier mixed-source rows. Metals are slightly worse (0.128 vs 0.114 eV), and so is the above-4 eV range
 (1.16 vs 0.93 eV). The mapped labels carry the PBE-to-OptB88vdW noise (about 0.2 eV MAE on shared formulas).
+
+## Independent validation: OQMD
+
+`ml/validation/oqmd_benchmark.py` and `ml/experiments/oqmd_comparison.py`. OQMD (`all_oqmd.json`, from
+figshare via jarvis-tools, 817,642 records) is a third source. Only formulas absent from both JARVIS and
+Materials Project are scored, so the deployed model has seen neither the formula nor its label: 344,373
+formulas, of which 94.6% are metals (zero gap). Metals are easy, so the table scores non-metals (18,759
+formulas) separately; the all-formula numbers are dominated by them.
+
+**Method agreement** (41,989 formulas shared with JARVIS): OQMD and JARVIS gaps differ by 0.17 eV MAE
+(correlation 0.91); JARVIS is on average 0.08 eV lower.
+
+**JARVIS-only vs deployed model**, on the same unseen OQMD formulas:
+
+| | JARVIS-only | Deployed (with MP labels) |
+| --- | --- | --- |
+| Non-metal MAE (eV) | 0.929 | **0.901** |
+| Non-metal R² | 0.220 | **0.256** |
+| All-formula MAE (eV) | 0.1185 | 0.118 |
+| 0–1 eV, MAE | 0.592 | 0.581 |
+| 1–2 eV, MAE | 0.785 | **0.701** |
+| 2–4 eV, MAE | 0.982 | **0.928** |
+| > 4 eV, MAE | 2.28 | 2.37 |
+
+**What this means.** The Materials Project labels do help on a source the model never saw, but by about
+3% in non-metal MAE, not the 19% seen on held-out Materials Project chemistry. Part of that larger gain came
+from the mapped labels matching Materials Project's own PBE settings. Gaps above 4 eV remain the weak spot
+(about 2.3 eV error, and slightly worse after augmentation). The deployed model's 90% intervals contain the
+OQMD gap for 80% of unseen non-metal formulas, short of the 90% target, so they remain optimistic on new
+chemistry.
+
+**Reproduce.** Download `all_oqmd.json.zip` (63 MB, figshare file 26790182) into `ml/data/raw/oqmd/` and
+unzip it there, then run `run_benchmark()` and `ml.experiments.oqmd_comparison.run()`. Results go to
+`experiments/` (git-ignored). OQMD element symbols carry a trailing space; the reader strips it and fails
+loudly if too many records cannot be read.

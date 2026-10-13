@@ -62,7 +62,7 @@ def run_benchmark(mp_path=MP_FILE, out_path=OUT_FILE):
     from ml.prediction.predict import load_bundle, predict_many
 
     mp = mp_pbe_gaps(mp_path)
-    train = pd.read_csv(DATA_PROCESSED / TRAINING_FILE)
+    train = pd.read_csv(DATA_PROCESSED / TRAINING_FILE, keep_default_na=False)
     jarvis = dict(zip(train["formula"], train["band_gap"].astype(float)))
 
     shared = sorted(set(mp) & set(jarvis))

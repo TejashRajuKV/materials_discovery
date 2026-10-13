@@ -22,7 +22,7 @@ def load_mp_gaps():
         gaps = mp_pbe_gaps(MP_FILE)
         MP_CACHE.parent.mkdir(parents=True, exist_ok=True)
         pd.DataFrame({"formula": list(gaps), "pbe_gap": list(gaps.values())}).to_csv(MP_CACHE, index=False)
-    return pd.read_csv(MP_CACHE)
+    return pd.read_csv(MP_CACHE, keep_default_na=False)
 
 
 def mp_only_rows(jarvis_df, mp_df=None):

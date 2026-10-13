@@ -36,7 +36,7 @@ def load_mp_gaps():
     if not MP_CACHE.exists():
         gaps = mp_pbe_gaps()
         pd.DataFrame({"formula": list(gaps), "pbe_gap": list(gaps.values())}).to_csv(MP_CACHE, index=False)
-    return pd.read_csv(MP_CACHE)
+    return pd.read_csv(MP_CACHE, keep_default_na=False)
 
 
 def hurdle():
@@ -47,7 +47,7 @@ def hurdle():
 
 
 def run(out_path=OUT):
-    jarvis = pd.read_csv(DATA_PROCESSED / TRAINING_FILE)
+    jarvis = pd.read_csv(DATA_PROCESSED / TRAINING_FILE, keep_default_na=False)
     mp = load_mp_gaps()
     shared = mp.merge(jarvis[["formula", "band_gap"]], on="formula")
     slope, intercept = np.polyfit(shared["pbe_gap"], shared["band_gap"], 1)

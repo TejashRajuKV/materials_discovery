@@ -52,7 +52,7 @@ Reasons for the deferred items are given inline.
 
 | Item | Effort | Notes |
 | --- | --- | --- |
-| More sources | M each | **Partly done.** Materials Project is used for external validation, not training: the model generalises much worse to novel formulas and PBE labels than its JARVIS test score suggests (see `docs/experiments/results.md`). OQMD, AFLOW, and experimental gaps are not started. |
+| More sources | M each | **Partly done.** Materials Project labels now join training (harmonised), and OQMD is the independent validation source (see `docs/experiments/results.md`). Earlier note: Materials Project was used for external validation, not training: the model generalises much worse to novel formulas and PBE labels than its JARVIS test score suggests (see `docs/experiments/results.md`). OQMD, AFLOW, and experimental gaps are not started. |
 | One-command refresh | M | Download, process, retrain, re-seed, and a diff of the results. |
 | Data quality report page | M | **Done** (`/data`): what preprocessing dropped and merged, and the target's shape. Missing-field counts per source are not shown yet. |
 
@@ -108,4 +108,4 @@ Phase 1 in full, then multi-property targets and the zero-gap fix from Phase 2, 
 
 ### Generalisation
 
-**Done:** Materials Project PBE labels (harmonised to the JARVIS scale) are added to training for formulas JARVIS lacks. On unseen Materials Project chemistry MAE fell 0.81 to 0.66 eV; JARVIS MAE rose 0.248 to 0.268 eV. See `docs/experiments/results.md`. **Open:** an independent source (OQMD, AFLOW) to re-measure generalisation, since the Materials Project benchmark is now in training.
+**Done:** Materials Project PBE labels (harmonised to the JARVIS scale) are added to training for formulas JARVIS lacks. On unseen Materials Project chemistry MAE fell 0.81 to 0.66 eV; JARVIS MAE rose 0.248 to 0.268 eV. See `docs/experiments/results.md`. **Independent check (OQMD):** on 18,759 unseen non-metal formulas the augmentation lowered MAE by about 3% (0.929 to 0.901 eV), far less than the 19% seen on held-out Materials Project chemistry; gaps above 4 eV are still poor (about 2.3 eV error) and the 90% intervals cover only 80%. **Open:** a better model for wide-gap compounds, and calibrating intervals on a mixed-source set. AFLOW and experimental gaps are further sources.

@@ -42,6 +42,12 @@ final fit only; the JARVIS test split is unchanged, and `band_gap_training.csv` 
 median PBE gaps are cached in `ml/data/processed/mp_pbe_gaps.csv`. Evidence and costs are in
 `docs/experiments/results.md`.
 
+## OQMD (validation only)
+
+`all_oqmd.json` (OQMD, 817,642 records, 450 MB unzipped) is used only to validate the band-gap model on
+formulas absent from JARVIS and Materials Project. It is stored in `ml/data/raw/oqmd/`, is git-ignored, and is
+not used for training. See `docs/experiments/results.md`.
+
 ## Synthetic demo (opt-in)
 
 `scripts/data/generate_synthetic_dataset.py` writes about 2,500 charge-balanceable compositions with a
