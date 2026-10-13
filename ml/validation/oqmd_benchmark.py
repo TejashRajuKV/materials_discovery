@@ -24,6 +24,7 @@ from ml.evaluation.metrics import regression_metrics
 from ml.preprocessing.mp_augment import load_mp_gaps
 from ml.validation.external import iter_json_array
 from ml.validation.external_benchmark import RANGES, _by_range
+from ml.validation.label_quality import implausible_label
 
 OQMD_FILE = DATA_RAW / "oqmd" / "all_oqmd.json"
 OUT_FILE = EXPERIMENTS_DIR / "external" / "oqmd_validation.json"
@@ -107,6 +108,18 @@ def run_benchmark(oqmd_path=OQMD_FILE, out_path=OUT_FILE):
         "metrics": {k: round(float(v), 4) for k, v in regression_metrics(y[nm], pred[nm]).items() if k != "n"},
         "interval_coverage_90": round(float(np.mean((y[nm] >= lo[nm]) & (y[nm] <= hi[nm]))), 4),
     }
+    # OQMD reports gaps of several eV for intermetallics (all-metal compounds), which are metals. Those labels
+    # are calculation artefacts; score without them as well, and report how many were removed.
+    formulas_scored = np.array([r[1]["formula"] for r in rows])
+    artefact = np.array([implausible_label(f, g) for f, g in zip(formulas_scored, y)])
+    keep = nm & ~artefact
+    clean = {
+        "artefact_labels_removed": int(artefact.sum()),
+        "formulas": int(keep.sum()),
+        "metrics": {k: round(float(v), 4) for k, v in regression_metrics(y[keep], pred[keep]).items() if k != "n"},
+        "interval_coverage_90": round(float(np.mean((y[keep] >= lo[keep]) & (y[keep] <= hi[keep]))), 4),
+        "by_gap_range": _by_range(y[keep], pred[keep]),
+    }
     result = {
         "model_version": bundle["metadata"]["version"],
         "oqmd_records_read": read,
@@ -120,6 +133,7 @@ def run_benchmark(oqmd_path=OQMD_FILE, out_path=OUT_FILE):
             "by_gap_range": _by_range(y, pred),
             "fraction_zero_gap": round(float(np.mean(y == 0)), 4),
             "nonmetals_only": nonmetal,
+            "nonmetals_without_artefact_labels": clean,
         },
         "note": "Formulas absent from JARVIS and Materials Project, both of which the model trains on.",
     }

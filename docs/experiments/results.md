@@ -132,38 +132,48 @@ noisier mixed-source rows. Metals are slightly worse (0.128 vs 0.114 eV), and so
 
 ## Independent validation: OQMD
 
-`ml/validation/oqmd_benchmark.py` and `ml/experiments/oqmd_comparison.py`. OQMD (`all_oqmd.json`, from
-figshare via jarvis-tools, 817,642 records) is a third source. Only formulas absent from both JARVIS and
-Materials Project are scored, so the deployed model has seen neither the formula nor its label: 344,373
-formulas, of which 94.6% are metals (zero gap). Metals are easy, so the table scores non-metals (18,759
-formulas) separately; the all-formula numbers are dominated by them.
+`ml/validation/oqmd_benchmark.py`, `ml/experiments/oqmd_comparison.py`, `ml/validation/label_quality.py`.
+OQMD (`all_oqmd.json`, from figshare via jarvis-tools, 817,642 records) is a third source. Only formulas absent
+from both JARVIS and Materials Project are scored, so the model has seen neither the formula nor its label:
+344,373 formulas, of which 94.6% are metals (zero gap). Metals are easy, so non-metals (18,759) are scored
+separately.
+
+**OQMD contains artefact labels, and they dominate the wide-gap error.** OQMD reports gaps of 9–12 eV for
+intermetallics: combinations of pure metals such as `AcLaNd`, `AcNdTh` or `AcGdRe`, which are metals with zero
+gap. 435 of OQMD's 394,969 formulas are all-metal compounds with a gap above 2 eV (JARVIS has 1, Materials
+Project 4). Among the unseen non-metals, 381 (2%) are such entries, including 299 of the 2,138 above 4 eV. Scoring
+without them changes the result a great deal, so every comparison below is given both ways.
 
 **Method agreement** (41,989 formulas shared with JARVIS): OQMD and JARVIS gaps differ by 0.17 eV MAE
 (correlation 0.91); JARVIS is on average 0.08 eV lower.
 
-**JARVIS-only vs deployed model**, on the same unseen OQMD formulas:
+**Three models on the same unseen non-metals**, MAE in eV (R² in brackets):
 
-| | JARVIS-only | Deployed (with MP labels) |
-| --- | --- | --- |
-| Non-metal MAE (eV) | 0.929 | **0.901** |
-| Non-metal R² | 0.220 | **0.256** |
-| All-formula MAE (eV) | 0.1185 | 0.118 |
-| 0–1 eV, MAE | 0.592 | 0.581 |
-| 1–2 eV, MAE | 0.785 | **0.701** |
-| 2–4 eV, MAE | 0.982 | **0.928** |
-| > 4 eV, MAE | 2.28 | 2.37 |
+| | JARVIS-only | Previous (JARVIS + MP labels) | Current (+ wide-gap blend, 71 features) |
+| --- | --- | --- | --- |
+| Without artefact labels (18,378) | 0.820 (0.439) | 0.792 (0.483) | **0.780 (0.496)** |
+| 0–1 eV | 0.592 | **0.581** | 0.584 |
+| 1–2 eV | 0.785 | **0.701** | 0.713 |
+| 2–4 eV | 0.947 | **0.892** | 0.899 |
+| Above 4 eV | 1.505 | 1.609 | **1.438** |
+| As given, with artefacts (18,759) | 0.929 (0.220) | 0.901 (0.256) | 0.890 (0.266) |
+| Above 4 eV, as given | 2.28 | 2.37 | 2.22 |
 
-**What this means.** The Materials Project labels do help on a source the model never saw, but by about
-3% in non-metal MAE, not the 19% seen on held-out Materials Project chemistry. Part of that larger gain came
-from the mapped labels matching Materials Project's own PBE settings. Gaps above 4 eV remain the weak spot
-(about 2.3 eV error, and slightly worse after augmentation). The deployed model's 90% intervals contain the
-OQMD gap for 80% of unseen non-metal formulas, short of the 90% target, so they remain optimistic on new
-chemistry.
+**What this means.**
+- The current model is 4.8% better than JARVIS-only on unseen chemistry (0.820 to 0.780 eV, R² 0.44 to 0.50).
+- The Materials Project labels help the 1–4 eV ranges (about 6–11%) but hurt above 4 eV (1.51 to 1.61). The
+  wide-gap blend recovers that and then some: 1.61 to 1.44.
+- The earlier figure of about 2.3 eV error above 4 eV on unseen chemistry was inflated by the artefact labels.
+  Without them it is about 1.4 eV, against 0.93 eV on the JARVIS test split. Wide-gap compounds are still the
+  weakest range, but the gap between benchmark and held-out test is much smaller than it first appeared.
+- The deployed model's 90% intervals contain 81% of the cleaned OQMD gaps (79% as given), below the 90%
+  target, so they are still optimistic on new chemistry.
 
-**Reproduce.** Download `all_oqmd.json.zip` (63 MB, figshare file 26790182) into `ml/data/raw/oqmd/` and
-unzip it there, then run `run_benchmark()` and `ml.experiments.oqmd_comparison.run()`. Results go to
-`experiments/` (git-ignored). OQMD element symbols carry a trailing space; the reader strips it and fails
-loudly if too many records cannot be read.
+**Reproduce.** Download `all_oqmd.json.zip` (63 MB, figshare file 26790182) into `ml/data/raw/oqmd/` and unzip
+it there, then run `run_benchmark()` and `ml.experiments.oqmd_comparison.run()`. Results go to `experiments/`
+(git-ignored). OQMD element symbols carry a trailing space; the reader strips it and fails loudly if too many
+records cannot be read. Cached tables are read with `keep_default_na=False`, since the formula `NaN` (sodium
+nitride) would otherwise be read as a missing value.
 
 ## Wide-gap predictions (compounds above 4 eV)
 
@@ -189,18 +199,28 @@ gain while the 0–2 eV ranges stay within 2% of the previous model. The extra f
 ionic character, d- and f-block share) give about 2% everywhere. The deployed model is the blend with the
 features: JARVIS test MAE 0.259 eV, above 4 eV 0.929 eV (was 1.156).
 
-**Independent check (OQMD, unseen non-metal formulas, 18,759).**
+**Independent check (OQMD).** See the OQMD section above. The blend lowers the OQMD error above 4 eV from
+1.61 to 1.44 eV on cleaned labels (as given, with artefacts: 2.37 to 2.22 eV). Overall non-metal error improves
+by about 1.5%. The development-set gain (20%) is larger than the independent one (11% above 4 eV on cleaned
+labels), as expected when variants are selected on the development sets.
 
-| | Previous model | Blend model |
+## Structure-aware features
+
+`ml/representation/structure_features.py` (17 descriptors: packing and density, lattice shape, nearest-
+neighbour distances, coordination, and bond ionicity from the electronegativity difference across bonds) and
+`ml/experiments/structure_ablation.py`. Entry-level ablation: each formula's most stable JARVIS entry, with
+that entry's own gap, non-metals only, random forests with identical settings. Scored on the JARVIS grouped
+test split (3,466) and on unseen OQMD non-metals (18,759, most stable OQMD entry of each, artefact labels not
+removed here). MAE in eV:
+
+| | Composition (71 features) | + structure (88 features) |
 | --- | --- | --- |
-| Non-metal MAE (eV) | 0.901 | **0.890** |
-| Non-metal R² | 0.256 | **0.266** |
-| Above 4 eV, MAE (eV) | 2.37 | **2.22** |
-| 0–1 / 1–2 / 2–4 eV, MAE | 0.581 / 0.701 / 0.928 | 0.584 / 0.713 / 0.935 |
-| 90% interval coverage | 0.80 | 0.79 |
+| JARVIS test | 0.605 | **0.572** (−5%) |
+| JARVIS test, above 4 eV | 0.993 | 0.950 |
+| OQMD unseen | 0.909 | **0.883** (−3%) |
+| OQMD unseen, above 4 eV (with artefacts) | 2.776 | 2.725 |
 
-The development-set gain does not carry over: above 4 eV the OQMD error falls 6%, not 20%, and overall
-non-metal error improves by about 1%. The remaining 2.2 eV is not mainly disagreement between databases:
-on formulas present in both, JARVIS and OQMD differ by 0.43 eV MAE where JARVIS is above 4 eV, and
-0.68 eV where OQMD is. So it is real model error on unseen wide-gap chemistry. Composition statistics do
-not seem to carry enough information there; structural information is the likelier next step.
+Structure helps a little, 3–5% overall, and does not change the wide-gap picture: the bias above 4 eV is still
+large with or without it, and on OQMD it is dominated by the artefact labels. The structure descriptors are not
+used in the deployed model, because candidates produced by element substitution have no structure to compute
+them from. They would apply to known materials, OQMD entries, or a future structure-generation step.
