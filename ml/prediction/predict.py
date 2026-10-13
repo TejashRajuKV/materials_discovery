@@ -27,11 +27,12 @@ def predict_many(formulas, bundle=None):
     """One result dict per input formula; invalid inputs get {"error": ...} instead of raising."""
     bundle = bundle or load_bundle()
     thresholds = bundle["metadata"]["uncertainty"]["std_thresholds"]
+    extended = bundle["metadata"].get("extended_features", False)
     results, rows, index = [None] * len(formulas), [], []
     for i, formula in enumerate(formulas):
         try:
             comp = parse_formula(formula)
-            rows.append(featurize(formula))
+            rows.append(featurize(formula, extended))
             index.append((i, comp.reduced_formula))
         except InvalidMaterialError as exc:
             results[i] = {"input": formula, "error": str(exc)}

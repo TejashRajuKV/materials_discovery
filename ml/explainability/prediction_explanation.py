@@ -9,7 +9,7 @@ from ml.representation.material_representation import featurize
 
 
 def explain(formula, bundle, top=5, neighbors=3):
-    x = featurize(formula)
+    x = featurize(formula, bundle["metadata"].get("extended_features", False))
     z = (x - bundle["feature_means"]) / bundle["feature_stds"]
     impact = np.abs(z) * bundle["importances"]
     order = np.argsort(-impact)[:top]

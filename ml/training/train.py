@@ -17,10 +17,10 @@ from ml.config import (DATA_PROCESSED, MODELS_SAVED, TRAINING_FILE, RANDOM_SEED,
                        TARGET_UNIT)
 from ml.evaluation.error_analysis import error_analysis
 from ml.evaluation.metrics import regression_metrics
+from ml.models.gated import WideGapGatedRegressor
 from ml.models.hurdle import HurdleRegressor
 from ml.prediction.uncertainty import forest_prediction_std
-from ml.representation.composition_features import feature_names
-from ml.representation.material_representation import chemical_system, featurize_many
+from ml.representation.material_representation import all_feature_names, chemical_system, featurize_many
 from ml.training.cross_validation import grouped_cv_scores, grouped_train_test_split
 from ml.training.hyperparameter_tuning import tune_random_forest
 
@@ -40,6 +40,15 @@ def baseline_models(rf_params=None):
         "hurdle_rf": HurdleRegressor(
             classifier=RandomForestClassifier(random_state=RANDOM_SEED, n_jobs=-1, **rf_params),
             regressor=RandomForestRegressor(random_state=RANDOM_SEED, n_jobs=-1, **rf_params),
+        ),
+        # Same, with a wide-gap specialist blended into the non-metal regressor (see ml/models/gated.py).
+        "hurdle_gated_rf": HurdleRegressor(
+            classifier=RandomForestClassifier(random_state=RANDOM_SEED, n_jobs=-1, **rf_params),
+            regressor=WideGapGatedRegressor(
+                base=RandomForestRegressor(random_state=RANDOM_SEED, n_jobs=-1, **rf_params),
+                specialist=RandomForestRegressor(random_state=RANDOM_SEED, n_jobs=-1, **rf_params),
+                gate=RandomForestClassifier(random_state=RANDOM_SEED, n_jobs=-1, **rf_params),
+            ),
         ),
     }
 
@@ -62,7 +71,7 @@ def train(tune=False, processed_file=TRAINING_FILE, out_dir=None, augment=True):
     df = pd.read_csv(data_path)
     formulas = df["formula"].tolist()
     y = df[TARGET].to_numpy(float)
-    X = featurize_many(formulas).to_numpy()
+    X = featurize_many(formulas, extended=True).to_numpy()
     groups = np.array([chemical_system(f) for f in formulas])
 
     train_idx, test_idx = grouped_train_test_split(len(df), groups)
@@ -75,7 +84,7 @@ def train(tune=False, processed_file=TRAINING_FILE, out_dir=None, augment=True):
     if augment:
         from ml.preprocessing.mp_augment import mp_only_rows
         aug, aug_info = mp_only_rows(df)
-        X_aug = featurize_many(aug["formula"].tolist()).to_numpy()
+        X_aug = featurize_many(aug["formula"].tolist(), extended=True).to_numpy()
         y_aug = aug["label"].to_numpy(float)
         X_tr = np.vstack([X_tr, X_aug])
         y_tr = np.concatenate([y_tr, y_aug])
@@ -146,9 +155,10 @@ def train(tune=False, processed_file=TRAINING_FILE, out_dir=None, augment=True):
             "test_interval_width_eV": round(2 * half_width, 4),
         },
         "feature_importance": dict(sorted(
-            zip(feature_names(), map(float, rf.feature_importances_)), key=lambda kv: -kv[1])[:15]),
+            zip(all_feature_names(True), map(float, rf.feature_importances_)), key=lambda kv: -kv[1])[:15]),
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "augmentation": aug_info,
+        "extended_features": True,  # 63 composition statistics + 8 chemistry features
         "metrics_note": "cv/test metrics come from models fit on the training split only; "
                         "the saved bundle is refit on all data.",
     }
@@ -160,7 +170,7 @@ def train(tune=False, processed_file=TRAINING_FILE, out_dir=None, augment=True):
         "neighbors": neighbors,
         "train_formulas": formulas,
         "train_targets": y,
-        "feature_names": feature_names(),
+        "feature_names": all_feature_names(True),
         "feature_means": X.mean(axis=0),
         "feature_stds": X.std(axis=0) + 1e-9,
         "importances": final_rf.feature_importances_,

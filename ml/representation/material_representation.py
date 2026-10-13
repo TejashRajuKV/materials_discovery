@@ -24,14 +24,27 @@ def parse_formula(formula):
     return comp
 
 
-def featurize(formula):
-    return composition_vector(parse_formula(formula))
+def all_feature_names(extended=False):
+    """The 63 composition statistics, plus the 8 chemistry features when `extended`."""
+    from ml.representation.chemistry_features import EXTRA_NAMES
+    return feature_names() + (EXTRA_NAMES if extended else [])
 
 
-def featurize_many(formulas):
+def featurize(formula, extended=False):
+    """Feature vector for one formula. `extended` appends the chemistry features that the band-gap model
+    uses; the property models keep the 63 base features they were trained on."""
+    vector = composition_vector(parse_formula(formula))
+    if extended:
+        from ml.representation.chemistry_features import extra_vector
+        vector = np.concatenate([vector, extra_vector(formula)])
+    return vector
+
+
+def featurize_many(formulas, extended=False):
     """DataFrame of features, one row per formula (raises InvalidMaterialError on bad input)."""
-    rows = np.vstack([featurize(f) for f in formulas]) if len(formulas) else np.empty((0, len(feature_names())))
-    return pd.DataFrame(rows, columns=feature_names())
+    names = all_feature_names(extended)
+    rows = np.vstack([featurize(f, extended) for f in formulas]) if len(formulas) else np.empty((0, len(names)))
+    return pd.DataFrame(rows, columns=names)
 
 
 def chemical_system(formula):

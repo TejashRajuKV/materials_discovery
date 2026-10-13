@@ -49,3 +49,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Local model backups (large)
+ml/models/backup/
