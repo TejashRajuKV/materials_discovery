@@ -33,6 +33,15 @@ Formation energy (eV/atom, all entries) and bulk modulus (GPa, the entries that 
 file. `preprocess` writes them to `ml/data/processed/properties/`, and `ml/main.py train-property` trains a
 model for each. Bulk moduli that are zero or negative are dropped.
 
+## Materials Project labels (added to band-gap training)
+
+`mp_3d.json` (Materials Project, 83,633 entries, PBE gaps) adds training rows for formulas JARVIS does not
+contain: 25,287 formulas. Their PBE gap is mapped onto the JARVIS OptB88vdW scale with a linear fit on the
+31,140 shared formulas (`ml/preprocessing/mp_augment.py`). The added rows join the training split and the
+final fit only; the JARVIS test split is unchanged, and `band_gap_training.csv` stays JARVIS-only. The
+median PBE gaps are cached in `ml/data/processed/mp_pbe_gaps.csv`. Evidence and costs are in
+`docs/experiments/results.md`.
+
 ## Synthetic demo (opt-in)
 
 `scripts/data/generate_synthetic_dataset.py` writes about 2,500 charge-balanceable compositions with a

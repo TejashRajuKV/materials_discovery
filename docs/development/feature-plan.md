@@ -74,7 +74,7 @@ Reasons for the deferred items are given inline.
 | Item | Effort | Notes |
 | --- | --- | --- |
 | Resident ML service | M | **Done** (`ml/service.py`, opt-in with `ML_SERVICE_URL`). Predict is about 0.5 s warm, against 6–7 s. The 1.2 GB band-gap model is still large in memory. |
-| Smaller model | S | **Done.** Band-gap forests use minimum leaf 5 (was 1). Bundle 0.35 GB (was 1.24 GB). Held-out MAE 0.248 eV (was 0.235). The property models already used smaller forests. |
+| Smaller model | S | **Done.** Band-gap forests use minimum leaf 5 (was 1). Bundle 0.58 GB with the added training rows (was 1.24 GB). The property models already used smaller forests. |
 | Job queue for discovery | M | **Partly done.** Jobs left running by a stopped server are marked failed at startup. Jobs still run in-process, not from a queue. |
 | Auth and per-user history | L | Needed before anything is shared. |
 | Automated database backups | S | **Done as a script** (`scripts/backup-db.js`, with retention). Scheduling it is left to the host. |
@@ -105,3 +105,7 @@ Reasons for the deferred items are given inline.
 ## Suggested order
 
 Phase 1 in full, then multi-property targets and the zero-gap fix from Phase 2, then the resident ML service from Phase 6, since it makes everything else faster to test. The UI features in Phase 5 can run alongside any of these.
+
+### Generalisation
+
+**Done:** Materials Project PBE labels (harmonised to the JARVIS scale) are added to training for formulas JARVIS lacks. On unseen Materials Project chemistry MAE fell 0.81 to 0.66 eV; JARVIS MAE rose 0.248 to 0.268 eV. See `docs/experiments/results.md`. **Open:** an independent source (OQMD, AFLOW) to re-measure generalisation, since the Materials Project benchmark is now in training.

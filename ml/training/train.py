@@ -57,7 +57,7 @@ def _file_sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
-def train(tune=False, processed_file=TRAINING_FILE, out_dir=None):
+def train(tune=False, processed_file=TRAINING_FILE, out_dir=None, augment=True):
     data_path = DATA_PROCESSED / processed_file
     df = pd.read_csv(data_path)
     formulas = df["formula"].tolist()
@@ -68,6 +68,18 @@ def train(tune=False, processed_file=TRAINING_FILE, out_dir=None):
     train_idx, test_idx = grouped_train_test_split(len(df), groups)
     X_tr, y_tr, g_tr = X[train_idx], y[train_idx], groups[train_idx]
     X_te, y_te = X[test_idx], y[test_idx]
+
+    # Extra labels for chemistry JARVIS does not cover (Materials Project PBE, harmonised). They join the
+    # training split and the final fit only; the JARVIS test split stays as it was.
+    aug_info, X_aug = None, None
+    if augment:
+        from ml.preprocessing.mp_augment import mp_only_rows
+        aug, aug_info = mp_only_rows(df)
+        X_aug = featurize_many(aug["formula"].tolist()).to_numpy()
+        y_aug = aug["label"].to_numpy(float)
+        X_tr = np.vstack([X_tr, X_aug])
+        y_tr = np.concatenate([y_tr, y_aug])
+        g_tr = np.concatenate([g_tr, aug["system"].to_numpy()])
 
     rf_params = None
     if tune:
@@ -103,8 +115,9 @@ def train(tune=False, processed_file=TRAINING_FILE, out_dir=None):
     corr = float(np.corrcoef(test_std, np.abs(rf.predict(X_te) - y_te))[0, 1])
 
     # Final deployed models are refit on ALL data; metrics above stay honest (held-out).
-    final_best = baseline_models(rf_params)[best_name].fit(X, y)
-    final_rf = baseline_models(rf_params)["random_forest"].fit(X, y)
+    X_full, y_full = (np.vstack([X, X_aug]), np.concatenate([y, y_aug])) if augment else (X, y)
+    final_best = baseline_models(rf_params)[best_name].fit(X_full, y_full)
+    final_rf = baseline_models(rf_params)["random_forest"].fit(X_full, y_full)
     scaler = StandardScaler().fit(X)
     neighbors = NearestNeighbors(n_neighbors=5).fit(scaler.transform(X))
 
@@ -116,7 +129,7 @@ def train(tune=False, processed_file=TRAINING_FILE, out_dir=None):
         "best_model": best_name,
         "rf_params": rf_params,
         "n_samples": int(len(df)),
-        "n_train": int(len(train_idx)),
+        "n_train": int(len(train_idx)) + (aug_info["n"] if aug_info else 0),
         "n_test": int(len(test_idx)),
         "dataset_file": processed_file,
         "dataset_sha256_16": _file_sha256(data_path),
@@ -135,6 +148,7 @@ def train(tune=False, processed_file=TRAINING_FILE, out_dir=None):
         "feature_importance": dict(sorted(
             zip(feature_names(), map(float, rf.feature_importances_)), key=lambda kv: -kv[1])[:15]),
         "trained_at": datetime.now(timezone.utc).isoformat(),
+        "augmentation": aug_info,
         "metrics_note": "cv/test metrics come from models fit on the training split only; "
                         "the saved bundle is refit on all data.",
     }
