@@ -32,7 +32,7 @@ export default function Prediction() {
   return (
     <>
       <h1>Property prediction</h1>
-      <p className="muted">Enter chemical formulas (comma or space separated). Each prediction has a 90% interval, calibrated on held-out data; the ± value is the model's per-material spread.</p>
+      <p className="muted">Enter chemical formulas (comma or space separated). Each prediction has a 90% interval. Band-gap intervals are calibrated on chemistry the model had not seen, so they are wide for large predicted gaps; formation-energy and bulk-modulus intervals are calibrated on JARVIS held-out data and are narrower. The ± value is the model's per-material spread.</p>
       <form onSubmit={submit} className="form">
         <label>Formulas<input value={text} onChange={(e) => setText(e.target.value)} placeholder="LiFePO4, GaN" /></label>
         <label>Property

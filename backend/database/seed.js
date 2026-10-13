@@ -24,8 +24,10 @@ export function seed(db, exportPath = config.exportPath) {
       predicted = excluded.predicted, uncertainty = excluded.uncertainty, interval_low = excluded.interval_low,
       interval_high = excluded.interval_high, model_version = excluded.model_version`);
   const insertModel = db.prepare(`
-    INSERT OR IGNORE INTO models (name, version, target_property, algorithm, metrics, details, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    INSERT INTO models (name, version, target_property, algorithm, metrics, details, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(version) DO UPDATE SET metrics = excluded.metrics, details = excluded.details,
+      algorithm = excluded.algorithm`);
   const { results, ...details } = model;
 
   db.transaction(() => {

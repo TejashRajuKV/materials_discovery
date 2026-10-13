@@ -36,10 +36,15 @@ example: the model says metal with probability 0.82. The overall R² falls sligh
 
 ## Calibrated intervals
 
-Split-conformal intervals at 90% level. The half-width (1.22 eV) comes from the out-of-fold residuals
-of the selected model on the training split. Held-out coverage on the JARVIS test split is 0.933, against a target of 0.90.
-Intervals are the same width for every material, so they are wide (1.74 eV) and not adaptive; the
-forest's tree-spread uncertainty remains the per-material signal.
+Band-gap intervals are 90% conformal intervals calibrated on **unseen chemistry**: OQMD formulas absent from
+JARVIS and Materials Project, with implausible labels removed (see the OQMD section). They are binned by the
+predicted gap (exactly 0, then 0–1, 1–2, 2–4, above 4 eV), and predicted metals are further split by the
+classifier's probability of being a non-metal. Each bin has its own half-width, so the interval is narrow for a
+confident metal and wide for a large predicted gap. See "Interval recalibration" below for why.
+
+Formation-energy and bulk-modulus intervals are still constant-width conformal intervals calibrated on JARVIS
+out-of-fold residuals (coverage 0.91 and 0.90 on the JARVIS test split). They have not been checked on unseen
+chemistry, and the band-gap results suggest they are optimistic there.
 
 ## Other findings
 
@@ -224,3 +229,47 @@ Structure helps a little, 3–5% overall, and does not change the wide-gap pictu
 large with or without it, and on OQMD it is dominated by the artefact labels. The structure descriptors are not
 used in the deployed model, because candidates produced by element substitution have no structure to compute
 them from. They would apply to known materials, OQMD entries, or a future structure-generation step.
+
+## Interval recalibration
+
+`ml/prediction/intervals.py`, `ml/experiments/interval_calibration.py`. The first intervals came from
+out-of-fold residuals on JARVIS and Materials Project training data: one constant half-width (1.22 eV), 0.93
+coverage on the JARVIS test split. On unseen chemistry they were badly miscalibrated.
+
+**The measurement problem.** 94.6% of unseen OQMD formulas are metals with zero gap. Overall coverage is
+therefore meaningless: a constant interval 0.03 eV wide reached 0.90 overall by being exactly right on metals,
+while covering 2% of non-metals. Coverage is reported conditional on the predicted-gap bin, which is what a
+user sees, with metals weighted back to their true share.
+
+**Protocol.** The model never trained on these formulas, so its residuals on them are honest. They are split by
+chemical system into a calibration half and a test half; methods are fitted on one half and scored on the other,
+averaged over five random splits. Coverage by predicted-gap bin on the held-out half (target 0.90):
+
+| Predicted gap | Previous (constant 1.22 eV) | Recalibrated | Recalibrated half-width (eV) |
+| --- | --- | --- | --- |
+| 0 (predicted metal) | 0.996 | 0.984 | 0 to 0.62, by classifier probability |
+| 0–1 eV | 0.988 | 0.899 | 0.95 |
+| 1–2 eV | **0.570** | 0.899 | 1.73 |
+| 2–4 eV | **0.431** | 0.888 | 3.11 |
+| Above 4 eV | **0.448** | 0.887 | 5.12 |
+
+Predicted metals whose classifier probability of being a non-metal was above 0.35 were covered 0.82 by a
+single metal width and 0.89 once split by that probability.
+
+**What this means.** The previous intervals covered fewer than half of the compounds predicted at 2 eV or above
+on unseen chemistry. The honest 90% intervals there are wide: ±3.1 eV at 2–4 eV and ±5.1 eV above 4 eV (the lower end is clipped at 0). That
+reflects heavy-tailed errors on new chemistry, not a calibration flaw. Scaling each interval by the forest's
+per-material spread, with or without the bins, barely narrows them (interval width 5.47 against 5.73 eV in the
+2–4 eV bin at equal coverage), so that spread does not identify which predictions will be wrong.
+
+**Limits.**
+- OQMD labels come from a different DFT code than JARVIS, so the intervals also absorb about 0.2 eV of
+  method difference. They describe the gap as another code would compute it for unseen chemistry.
+- The calibration set cannot also test the final model: the deployed intervals are fitted on all of it. The
+  held-out figures above come from the split protocol.
+- A prediction of exactly zero can still be wrong: GaAs is predicted as a metal with a 0.32 probability of being
+  a non-metal, and gets a minimal interval. Roughly 9% of predicted metals at that probability are not metals;
+  the displayed probability and the "low" confidence label are the signal.
+- A display floor of 0.05 eV stops a predicted metal showing a zero-width interval.
+- Retraining invalidates the calibration: `interval_calibration.prepare()` rebuilds its cached predictions when
+  the model version changes, and `apply()` must be rerun.
